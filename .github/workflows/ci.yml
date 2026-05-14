@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (Node.js)
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm test
+      - name: Performance budgets (stubbed LLM)
+        run: pnpm run perf
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+
+  swift-packages:
+    name: Swift packages
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Test LessonKit
+        working-directory: app/Packages/LessonKit
+        run: swift test
+      - name: Test BackendClient
+        working-directory: app/Packages/BackendClient
+        run: swift test
+      - name: Build app shell
+        working-directory: app/GramartEnglish
+        run: swift build
+      - name: Test app (unit + perf benches)
+        working-directory: app/GramartEnglish
+        # Includes Tests/Perf which holds the mode-card render bench (T054)
+        # and the audio first-token bench (T055). Audio bench is gated on the
+        # GRAMART_PERF_AUDIO env var so CI doesn't try to actually play sound.
+        run: swift test
