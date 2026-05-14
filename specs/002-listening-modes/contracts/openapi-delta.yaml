@@ -1,0 +1,114 @@
+# OpenAPI Delta — Feature 002 Listening Modes
+#
+# STATUS: MERGED into specs/001-vocabulary-lesson-mvp/contracts/openapi.yaml on 2026-05-14
+# (T060). The canonical spec is now at info.version: 1.2.0. This file is kept
+# as a historical record of what F002 added; do not edit it further. Future
+# changes go directly into the canonical openapi.yaml.
+#
+# Original purpose: captured only the additions/changes to the v1.1 contract.
+
+components:
+  schemas:
+    LessonMode:
+      type: string
+      enum:
+        - read_pick_meaning
+        - listen_pick_word
+        - listen_pick_meaning
+        - listen_type
+      description: |
+        The mode a lesson is played in.
+        - read_pick_meaning: MVP mode (see English word in context, pick Spanish meaning)
+        - listen_pick_word: hear audio, pick English word from 4 written options
+        - listen_pick_meaning: hear audio, pick Spanish meaning from 4 options
+        - listen_type: hear audio, type the word (Levenshtein ≤ 1 tolerated)
+
+    # Extended:
+    LessonStartRequest:
+      type: object
+      required: [level]
+      properties:
+        level: { $ref: '#/components/schemas/CEFRLevel' }
+        mode:
+          $ref: '#/components/schemas/LessonMode'
+          description: Optional; defaults to read_pick_meaning if omitted.
+
+    # Extended:
+    AnswerRequest:
+      type: object
+      required: [questionId, answerMs]
+      properties:
+        questionId: { type: string, format: uuid }
+        optionIndex:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: |
+            Required when the lesson mode uses options. Mutually exclusive with `typedAnswer`.
+        typedAnswer:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: |
+            Required when the lesson mode is `listen_type`. Trimmed, case-insensitive
+            matched. Levenshtein ≤ 1 of the canonical spelling counts as correct.
+        answerMs: { type: integer, minimum: 0 }
+
+    # Extended:
+    AnswerResponse:
+      type: object
+      required: [outcome, correctIndex, correctOption, canonicalDefinition]
+      properties:
+        outcome: { type: string, enum: [correct, incorrect, skipped] }
+        correctIndex:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: |
+            For option-based modes, the 0..3 index of the correct option.
+            For `listen_type` (typed mode) where there are no options, this is set to 0
+            and clients MUST ignore it. The canonical answer is in `correctOption`.
+        correctOption:
+          type: string
+          description: |
+            Option-based modes: the text of the correct option (Spanish for
+            read_pick_meaning/listen_pick_meaning, English for listen_pick_word).
+            For `listen_type`: the canonical English spelling that was being tested.
+        canonicalDefinition: { type: string }
+        typedAnswerEcho:
+          type: string
+          description: |
+            Present only for `listen_type` mode. Echoes the user's typed answer
+            (trimmed, original case) so the UI can show typo correction
+            side-by-side with the canonical spelling (FR-007a).
+
+    # New on /v1/progress response:
+    ProgressResponse:
+      type: object
+      required: [currentLevel, lessonsCompleted, masteredCount, toReviewCount, perModeMastered, recommendedMode]
+      properties:
+        currentLevel: { $ref: '#/components/schemas/CEFRLevel' }
+        lessonsCompleted: { type: integer }
+        masteredCount: { type: integer, description: "Total mastered, summed across modes." }
+        toReviewCount: { type: integer }
+        lastLesson: { type: object, nullable: true }
+        resumable: { type: object, nullable: true }
+        perModeMastered:
+          type: object
+          description: |
+            Mastered word count per mode. Keys are LessonMode values. Sum equals
+            masteredCount only when each word can be mastered in multiple modes
+            (which is the design: knowing "weather" by reading and by ear counts twice).
+          properties:
+            read_pick_meaning: { type: integer }
+            listen_pick_word: { type: integer }
+            listen_pick_meaning: { type: integer }
+            listen_type: { type: integer }
+        recommendedMode:
+          $ref: '#/components/schemas/LessonMode'
+          description: |
+            The mode argmax(pendingWordsForMode at user.currentLevel), tiebreaker
+            least-recently-used. Drives the "Recomendado para ti" badge on Home.
+
+# No new paths in this feature — all changes are body/response extensions on
+# existing paths (`/v1/lessons`, `/v1/lessons/{id}/answers`, `/v1/progress`).

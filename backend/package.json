@@ -1,0 +1,62 @@
+{
+  "name": "gramart-english-backend",
+  "version": "1.0.0",
+  "description": "Embedded local backend for GramartEnglish macOS app",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0 <21.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/bundle.mjs",
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "perf": "vitest run --config vitest.perf.config.ts",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "ingest": "tsx scripts/ingest-cefr.ts",
+    "db:rollback": "tsx scripts/db-rollback.ts",
+    "audit": "pnpm audit --prod",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "hnswlib-node",
+      "esbuild"
+    ],
+    "minimumReleaseAge": 1440,
+    "auditConfig": {
+      "ignoreCves": []
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "fastify": "^4.28.1",
+    "fastify-plugin": "^4.5.1",
+    "hnswlib-node": "^3.0.0",
+    "js-yaml": "^4.1.0",
+    "ollama": "^0.5.9",
+    "pino": "^9.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.14.10",
+    "@types/supertest": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "esbuild": "^0.23.0",
+    "eslint": "^8.57.0",
+    "pino-pretty": "^11.2.1",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3"
+  }
+}
