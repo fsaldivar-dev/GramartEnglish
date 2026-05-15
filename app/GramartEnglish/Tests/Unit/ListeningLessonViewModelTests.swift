@@ -86,7 +86,11 @@ final class ListeningLessonViewModelTests: XCTestCase {
 
     func testAnswerTypedSendsTypedAnswerAndCapturesEcho() async {
         let vm = makeViewModel(mode: .listenType)
-        var sawTypedBody = false
+        // `TestURLProtocol.handler` is `@Sendable`, so the closure can run on
+        // any thread. Capturing a `var Bool` and mutating it triggers
+        // "mutation of captured var in concurrently-executing code" on Swift
+        // 5.9 strict concurrency. A class-wrapped flag is the standard fix.
+        let sawTypedBody = TestFlag()
         TestURLProtocol.handler = { request in
             if request.url?.path.hasSuffix("/lessons") == true {
                 return (200, Self.startBodyListenPickWord())
@@ -104,7 +108,7 @@ final class ListeningLessonViewModelTests: XCTestCase {
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    json["typedAnswer"] as? String == "wether",
                    json["optionIndex"] == nil {
-                    sawTypedBody = true
+                    sawTypedBody.value = true
                 }
                 return (200, Self.answerBody(correct: true, typedEcho: "wether"))
             }
@@ -112,7 +116,7 @@ final class ListeningLessonViewModelTests: XCTestCase {
         }
         await vm.start()
         await vm.answerTyped("  wether  ") // trimming
-        XCTAssertTrue(sawTypedBody, "request body must carry typedAnswer and no optionIndex")
+        XCTAssertTrue(sawTypedBody.value, "request body must carry typedAnswer and no optionIndex")
         XCTAssertEqual(vm.typedEchoForReveal, "wether")
         guard case .revealing(_, let outcome) = vm.phase else {
             return XCTFail("expected revealing")
@@ -122,12 +126,12 @@ final class ListeningLessonViewModelTests: XCTestCase {
 
     func testEmptyTypedAnswerFallsThroughToSkip() async {
         let vm = makeViewModel(mode: .listenType)
-        var sawSkip = false
+        let sawSkip = TestFlag()
         TestURLProtocol.handler = { request in
             let path = request.url?.path ?? ""
             if path.hasSuffix("/lessons") { return (200, Self.startBodyListenPickWord()) }
             if path.contains("/skip") {
-                sawSkip = true
+                sawSkip.value = true
                 return (200, """
                 {"outcome":"skipped","correctIndex":0,"correctOption":"weather","canonicalDefinition":"clima"}
                 """.data(using: .utf8)!)
@@ -136,7 +140,14 @@ final class ListeningLessonViewModelTests: XCTestCase {
         }
         await vm.start()
         await vm.answerTyped("   ")
-        XCTAssertTrue(sawSkip, "empty typed input should route to /skip")
+        XCTAssertTrue(sawSkip.value, "empty typed input should route to /skip")
         XCTAssertNil(vm.typedEchoForReveal)
     }
+}
+
+/// Mutable flag wrapped in a class so it can be safely captured by
+/// `@Sendable` URL-mock handlers without tripping Swift 5.9 strict-concurrency
+/// checks on captured `var`s.
+final class TestFlag: @unchecked Sendable {
+    var value: Bool = false
 }
