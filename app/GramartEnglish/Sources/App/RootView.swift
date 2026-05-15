@@ -248,6 +248,8 @@ struct LessonFlowView: View {
                     onBackHome: onExit
                 )
                 .task {
+                    // Persist the mode just played so next launch defaults to it.
+                    await vm.persistPreferredMode()
                     // Refresh per-mode counts so the strip reflects post-lesson state.
                     if let prog = try? await client.progress() {
                         latestPerModeMastered = prog.perModeMastered
