@@ -39,7 +39,7 @@ export function validateExamples(rawOutput: string, base: string): ValidatedExam
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0)
-    .map((l) => l.replace(/^[\d\.\-\)\(]+\s*/, '').replace(/^["']|["']$/g, '').trim())
+    .map((l) => l.replace(/^[\d.\-)(]+\s*/, '').replace(/^["']|["']$/g, '').trim())
     .filter((l) => l.length > 0);
   const kept = lines.filter((l) => containsWord(l, base)).slice(0, 3);
   if (kept.length === 0) {
