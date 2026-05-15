@@ -156,7 +156,7 @@ public struct BackendClient: Sendable {
         try await post(
             "/placement/submit",
             body: PlacementSubmitRequest(placementId: placementId, answers: answers),
-            as: PlacementResultResponse.self,
+            as: PlacementResultResponse.self
         )
     }
 
@@ -189,7 +189,7 @@ public struct BackendClient: Sendable {
         try await post(
             "/lessons",
             body: StartLessonRequest(level: level, mode: mode),
-            as: StartLessonResponse.self,
+            as: StartLessonResponse.self
         )
     }
 
@@ -228,7 +228,7 @@ public struct BackendClient: Sendable {
         try await post(
             "/lessons/\(lessonId)/answers",
             body: AnswerLessonRequest(questionId: questionId, optionIndex: optionIndex, answerMs: answerMs),
-            as: AnswerLessonResponse.self,
+            as: AnswerLessonResponse.self
         )
     }
 
@@ -242,7 +242,7 @@ public struct BackendClient: Sendable {
         try await post(
             "/lessons/\(lessonId)/answers",
             body: AnswerLessonRequest(questionId: questionId, typedAnswer: typedAnswer, answerMs: answerMs),
-            as: AnswerLessonResponse.self,
+            as: AnswerLessonResponse.self
         )
     }
 
@@ -263,7 +263,7 @@ public struct BackendClient: Sendable {
         try await post(
             "/lessons/\(lessonId)/skip",
             body: SkipLessonRequest(questionId: questionId, answerMs: answerMs),
-            as: AnswerLessonResponse.self,
+            as: AnswerLessonResponse.self
         )
     }
 

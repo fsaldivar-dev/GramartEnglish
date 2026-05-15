@@ -5,7 +5,11 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json',
+    // Use a dedicated tsconfig that includes tests/perf/scripts so ESLint
+    // can type-aware-lint them. The main tsconfig.json stays narrowed to
+    // `src/` for production builds.
+    project: './tsconfig.eslint.json',
+    tsconfigRootDir: __dirname,
   },
   plugins: ['@typescript-eslint'],
   extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
