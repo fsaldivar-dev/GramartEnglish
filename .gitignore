@@ -1,0 +1,36 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Local data
+*.log
+*.tmp
+.env
+.env.*
+
+# GramartEnglish runtime artifacts (SQLite DB + backend logs)
+.gramart/
+.gramart-logs/
+
+# Claude / spec-kit local settings (personal, not shared)
+.claude/settings.local.json
+.specify/feature.json
+RESUME.md
