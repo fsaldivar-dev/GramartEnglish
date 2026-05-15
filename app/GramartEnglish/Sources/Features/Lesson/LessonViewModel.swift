@@ -149,14 +149,17 @@ public final class LessonViewModel: ObservableObject {
         do {
             let summary = try await client.completeLesson(lessonId: state.lessonId)
             phase = .summary(summary)
-            // T040 — persist the mode that was just played so next launch defaults to it.
-            // Best-effort: a failed PATCH must not break the summary UI.
-            Task.detached { [client, mode] in
-                _ = try? await client.patchMePreferredMode(mode.rawValue)
-            }
         } catch {
             phase = .failed(Self.describe(error))
         }
+    }
+
+    /// Best-effort persist the played mode so next launch defaults to it (T040).
+    /// Caller decides when/whether to invoke; the view model never spawns
+    /// a detached side-effect task (that pattern leaked across tests via a
+    /// shared `URLProtocol.handler` static var on the test side).
+    public func persistPreferredMode() async {
+        _ = try? await client.patchMePreferredMode(mode.rawValue)
     }
 
     private static func describe(_ error: Error) -> String {
