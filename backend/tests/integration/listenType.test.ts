@@ -34,15 +34,24 @@ async function bootAndStart(): Promise<{ a: FastifyInstance; lesson: StartBody }
   return { a: app, lesson: res.json() as StartBody };
 }
 
+/**
+ * Produces a typo of an exact Levenshtein distance.
+ *
+ * Older versions used "xy" as the trailing garbage which collided with words
+ * ending in y (e.g. `"easy"` → `"eaxy"` is distance 1, not 2, because the
+ * trailing `y` matches the canonical `y`). We now append `qz` for distance 2
+ * (those letters are virtually never word-final in English) and substitute
+ * the last char with whichever of `q`/`z` is NOT already there.
+ */
 function makeTypo(word: string, distance: 1 | 2): string {
-  // For distance 1: change the last char.
   if (distance === 1) {
-    if (word.length < 2) return word + 'x';
-    return word.slice(0, -1) + (word.endsWith('x') ? 'y' : 'x');
+    if (word.length === 0) return 'q';
+    const last = word[word.length - 1]!;
+    const repl = last === 'q' ? 'z' : 'q';
+    return word.slice(0, -1) + repl;
   }
-  // For distance 2: change last 2 chars (or append 2 if short).
-  if (word.length < 3) return word + 'xy';
-  return word.slice(0, -2) + 'xy';
+  // Always +2 insertions of letters that don't occur at word end in English.
+  return word + 'qz';
 }
 
 describe('integration: listen_type end-to-end', () => {
