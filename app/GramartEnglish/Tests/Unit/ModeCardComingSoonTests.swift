@@ -19,7 +19,9 @@ final class ModeCardComingSoonTests: XCTestCase {
     /// The default `comingSoon` action is a no-op so accidentally invoking it
     /// won't crash or call into RootView's mode-tap handler.
     func testDefaultComingSoonActionIsNoOp() {
-        let card = ModeCard(comingSoon: .writePickWord)
+        // After F003, writePickWord/writeTypeWord shipped — the only remaining
+        // write-style ComingSoon is writeFillGaps (v1.4).
+        let card = ModeCard(comingSoon: .writeFillGaps)
         // Should not crash; nothing to assert beyond "did not throw".
         card.action()
     }

@@ -99,20 +99,32 @@ export class MasteryRepository {
     return row?.ls ?? null;
   }
 
-  /** Apply an answer event for (userId, wordId, mode). Returns the updated row. */
-  apply(input: { userId: string; wordId: number; mode: LessonMode; outcome: AnswerOutcome }): WordMasteryRow {
+  /** Apply an answer event for (userId, wordId, mode). Returns the updated row.
+   *
+   *  `hintUsed: true` forces `consecutiveCorrect = 0` regardless of outcome —
+   *  the streak is broken even on a correct answer (F003 FR-009). Total counts
+   *  still increment so analytics see the attempt.
+   */
+  apply(input: {
+    userId: string;
+    wordId: number;
+    mode: LessonMode;
+    outcome: AnswerOutcome;
+    hintUsed?: boolean;
+  }): WordMasteryRow {
     const existing = this.byUserAndWord(input.userId, input.wordId, input.mode);
     const now = new Date().toISOString();
     const correct = input.outcome === 'correct';
     const incorrect = input.outcome === 'incorrect';
     const skipped = input.outcome === 'skipped';
+    const hintUsed = input.hintUsed === true;
 
     if (!existing) {
       const row: WordMasteryRow = {
         userId: input.userId,
         wordId: input.wordId,
         mode: input.mode,
-        consecutiveCorrect: correct ? 1 : 0,
+        consecutiveCorrect: correct && !hintUsed ? 1 : 0,
         totalCorrect: correct ? 1 : 0,
         totalIncorrect: incorrect ? 1 : 0,
         totalSkipped: skipped ? 1 : 0,
@@ -129,7 +141,7 @@ export class MasteryRepository {
       return row;
     }
 
-    const consecutiveCorrect = correct ? existing.consecutiveCorrect + 1 : 0;
+    const consecutiveCorrect = correct && !hintUsed ? existing.consecutiveCorrect + 1 : 0;
     const updated: WordMasteryRow = {
       ...existing,
       consecutiveCorrect,
