@@ -9,12 +9,18 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
     public let word: String
     public let options: [String]
     public let position: Int
+    /// v1.3+. Spanish meaning the client should render as the question
+    /// stimulus for write modes (`write_pick_word`, `write_type_word`,
+    /// `write_fill_gaps`). `nil` for read + listen modes — those keep
+    /// rendering `word` as before.
+    public let prompt: String?
 
-    public init(id: String, word: String, options: [String], position: Int) {
+    public init(id: String, word: String, options: [String], position: Int, prompt: String? = nil) {
         self.id = id
         self.word = word
         self.options = options
         self.position = position
+        self.prompt = prompt
     }
 }
 

@@ -18,6 +18,10 @@ const AnswerRequest = z
     questionId: Uuid,
     optionIndex: z.number().int().min(0).max(3).optional(),
     typedAnswer: z.string().trim().min(1).max(80).optional(),
+    /** v1.3+. When true, the user revealed letters via the hint button.
+     *  Backend zeroes consecutiveCorrect on the mastery row regardless of
+     *  outcome — see FR-009. Compatible with both option and typed answers. */
+    hintUsed: z.boolean().optional(),
     answerMs: z.number().int().nonnegative(),
   })
   .refine(
@@ -79,6 +83,7 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
         questionId: body.data.questionId,
         ...(body.data.optionIndex !== undefined ? { optionIndex: body.data.optionIndex } : {}),
         ...(body.data.typedAnswer !== undefined ? { typedAnswer: body.data.typedAnswer } : {}),
+        ...(body.data.hintUsed !== undefined ? { hintUsed: body.data.hintUsed } : {}),
         answerMs: body.data.answerMs,
         userId: user.id,
       });

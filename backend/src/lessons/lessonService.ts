@@ -21,6 +21,9 @@ export interface ClientLessonQuestion {
   word: string;
   options: string[];
   position: number;
+  /** v1.3+. Populated for write modes — Spanish meaning the client should
+   *  render as the prompt instead of `word`. Absent for read/listen modes. */
+  prompt?: string;
 }
 
 export interface StartLessonResult {
@@ -86,9 +89,21 @@ export class LessonService {
       };
     });
     const rows = this.deps.questions.createMany(newQuestions);
+    const isWriting = mode === 'write_pick_word' || mode === 'write_type_word' || mode === 'write_fill_gaps';
     const clientQuestions: ClientLessonQuestion[] = rows.map((r) => {
       const word = words[r.position]!;
-      return { id: r.id, word: word.base, options: r.options, position: r.position };
+      const base: ClientLessonQuestion = {
+        id: r.id,
+        word: word.base,
+        options: r.options,
+        position: r.position,
+      };
+      // v1.3 F003: write modes need the Spanish meaning rendered as the prompt
+      // because `word` (English) is what TTS plays and what the answer key is.
+      if (isWriting) {
+        base.prompt = word.spanishOption;
+      }
+      return base;
     });
     return { lesson, questions: clientQuestions };
   }
@@ -98,6 +113,9 @@ export class LessonService {
     questionId: string;
     optionIndex?: number;
     typedAnswer?: string;
+    /** v1.3 (F003 FR-009): user revealed letters via hint — zeroes the
+     *  consecutiveCorrect streak even on a correct typed answer. */
+    hintUsed?: boolean;
     answerMs: number;
     userId: string;
   }): AnswerResult {
@@ -108,9 +126,10 @@ export class LessonService {
     const lesson = this.deps.lessons.byId(input.lessonId);
     const mode: LessonMode = (lesson?.mode as LessonMode | undefined) ?? 'read_pick_meaning';
     const word = this.deps.words.byId(question.wordId);
+    const isTyped = mode === 'listen_type' || mode === 'write_type_word' || mode === 'write_fill_gaps';
 
-    if (mode === 'listen_type') {
-      if (input.typedAnswer === undefined) throw new Error('typedAnswer required for listen_type');
+    if (isTyped) {
+      if (input.typedAnswer === undefined) throw new Error(`typedAnswer required for ${mode}`);
       const canonical = (word?.base ?? '').trim().toLowerCase();
       const typedTrimmed = input.typedAnswer.trim();
       const typedNorm = typedTrimmed.toLowerCase();
@@ -128,6 +147,7 @@ export class LessonService {
         wordId: question.wordId,
         mode,
         outcome: correct ? 'correct' : 'incorrect',
+        ...(input.hintUsed ? { hintUsed: true } : {}),
       });
       return {
         outcome: correct ? 'correct' : 'incorrect',
@@ -151,6 +171,7 @@ export class LessonService {
       wordId: question.wordId,
       mode,
       outcome: correct ? 'correct' : 'incorrect',
+      ...(input.hintUsed ? { hintUsed: true } : {}),
     });
 
     return {
