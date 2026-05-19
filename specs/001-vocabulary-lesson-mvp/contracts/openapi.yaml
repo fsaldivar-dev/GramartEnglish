@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.2.0
+  version: 1.3.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -93,12 +93,18 @@ components:
         - listen_pick_word
         - listen_pick_meaning
         - listen_type
+        - write_pick_word
+        - write_type_word
+        - write_fill_gaps
       description: |
-        The mode a lesson is played in (added in v1.2.0 / Feature 002).
-          - read_pick_meaning: MVP mode (see English word in context, pick Spanish meaning)
-          - listen_pick_word: hear audio, pick English word from 4 written options
-          - listen_pick_meaning: hear audio, pick Spanish meaning from 4 options
-          - listen_type: hear audio, type the word (Levenshtein ≤ 1 tolerated)
+        The mode a lesson is played in.
+          - read_pick_meaning  (v1.0+): see English word in context, pick Spanish meaning
+          - listen_pick_word   (v1.2+): hear audio, pick English word from 4 options
+          - listen_pick_meaning(v1.2+): hear audio, pick Spanish meaning from 4 options
+          - listen_type        (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
+          - write_pick_word    (v1.3+): see Spanish meaning, pick English word from 4 options
+          - write_type_word    (v1.3+): see Spanish meaning, type the English word
+          - write_fill_gaps    (v1.3+ placeholder, ships v1.4): see Spanish + masked English (e.g. `w__th_r`), type the gaps
     LessonStartRequest:
       type: object
       required: [level]
@@ -112,7 +118,17 @@ components:
       required: [id, word, options, position]
       properties:
         id: { type: string, format: uuid }
-        word: { type: string }
+        word:
+          type: string
+          description: |
+            Canonical English word. Used for TTS playback and as the answer
+            key for typed modes. ALWAYS present.
+        prompt:
+          type: string
+          description: |
+            v1.3+. Spanish meaning the client renders as the question stimulus
+            for write modes (`write_pick_word`, `write_type_word`,
+            `write_fill_gaps`). Absent for read + listen modes.
         options:
           type: array
           minItems: 4
@@ -148,9 +164,16 @@ components:
           minLength: 1
           maxLength: 80
           description: |
-            Required when the lesson mode is `listen_type` (v1.2.0). Trimmed,
-            case-insensitive matched. Levenshtein ≤ 1 of the canonical spelling
-            counts as correct.
+            Required for typed modes (`listen_type`, `write_type_word`,
+            `write_fill_gaps`). Trimmed, case-insensitive. Levenshtein ≤ 1
+            of the canonical English spelling counts as correct.
+        hintUsed:
+          type: boolean
+          description: |
+            v1.3+. True when the user revealed letters via the hint button
+            during a typed question. Backend zeroes the consecutiveCorrect
+            streak even on a correct answer — no mastery credit (FR-009).
+            Default false / absent.
         answerMs: { type: integer, minimum: 0 }
     AnswerResponse:
       type: object
