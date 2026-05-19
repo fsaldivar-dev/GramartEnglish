@@ -10,9 +10,11 @@ final class LessonModeTests: XCTestCase {
         XCTAssertEqual(LessonMode.listenType.rawValue, "listen_type")
     }
 
-    func testAllCasesCoversFourShippedModes() {
-        XCTAssertEqual(LessonMode.allCases.count, 4)
-        XCTAssertEqual(SHIPPED_MODES.count, 4)
+    func testAllCasesCoversAllDefinedModes() {
+        // v1.3: 4 from F002 + 3 write_* from F003 = 7 enum values.
+        XCTAssertEqual(LessonMode.allCases.count, 7)
+        // SHIPPED_MODES excludes write_fill_gaps (deferred to v1.4) so 6 ship in v1.3.
+        XCTAssertEqual(SHIPPED_MODES.count, 6)
     }
 
     func testParsingFromRawString() {
@@ -34,9 +36,9 @@ final class LessonModeTests: XCTestCase {
         for listen: LessonMode in [.listenPickWord, .listenPickMeaning, .listenType] {
             XCTAssertEqual(listen.displayName, "Escuchar")
         }
-        // Subtitles are distinct per mode (4 unique strings).
+        // Subtitles are distinct per mode (7 unique strings after F003).
         let subtitles = Set(LessonMode.allCases.map(\.displaySubtitle))
-        XCTAssertEqual(subtitles.count, 4)
+        XCTAssertEqual(subtitles.count, 7)
     }
 
     func testListeningFlagMatchesAudioModes() {
@@ -46,11 +48,20 @@ final class LessonModeTests: XCTestCase {
         XCTAssertTrue(LessonMode.listenType.isListening)
     }
 
-    func testIsTypedOnlyForListenType() {
-        for mode in LessonMode.allCases where mode != .listenType {
-            XCTAssertFalse(mode.isTyped, "\(mode.rawValue) should not be typed")
+    func testIsTypedCoversTypedModes() {
+        let typed: Set<LessonMode> = [.listenType, .writeTypeWord, .writeFillGaps]
+        for mode in LessonMode.allCases {
+            XCTAssertEqual(mode.isTyped, typed.contains(mode),
+                           "\(mode.rawValue) isTyped expected=\(typed.contains(mode))")
         }
-        XCTAssertTrue(LessonMode.listenType.isTyped)
+    }
+
+    func testIsWritingCoversWriteModes() {
+        let writing: Set<LessonMode> = [.writePickWord, .writeTypeWord, .writeFillGaps]
+        for mode in LessonMode.allCases {
+            XCTAssertEqual(mode.isWriting, writing.contains(mode),
+                           "\(mode.rawValue) isWriting expected=\(writing.contains(mode))")
+        }
     }
 
     func testCodableRoundTrip() throws {
@@ -70,7 +81,7 @@ final class LessonModeTests: XCTestCase {
         let shippedRaws = Set(SHIPPED_MODES.map(\.rawValue))
         for cs in ComingSoonMode.allCases {
             XCTAssertFalse(shippedRaws.contains(cs.rawValue), "\(cs.rawValue) must not be a shipped LessonMode")
+            XCTAssertTrue(cs.displaySubtitle.contains("Próximamente"), "\(cs.rawValue) subtitle should mention Próximamente")
         }
-        XCTAssertTrue(ComingSoonMode.writePickWord.displaySubtitle.contains("Próximamente"))
     }
 }

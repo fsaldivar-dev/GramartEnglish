@@ -167,6 +167,9 @@ public struct BackendClient: Sendable {
         public let word: String
         public let options: [String]
         public let position: Int
+        /// v1.3+. Spanish meaning when the server picks a write mode. Clients
+        /// MUST render this in place of `word` when present.
+        public let prompt: String?
     }
 
     public struct StartLessonRequest: Codable, Sendable {
@@ -197,11 +200,22 @@ public struct BackendClient: Sendable {
         public let questionId: String
         public let optionIndex: Int?
         public let typedAnswer: String?
+        /// v1.3+. Set true when the user revealed letters via the hint button
+        /// (write_type_word, write_fill_gaps). Backend zeroes the
+        /// consecutiveCorrect streak even on a correct answer (FR-009).
+        public let hintUsed: Bool?
         public let answerMs: Int
-        public init(questionId: String, optionIndex: Int? = nil, typedAnswer: String? = nil, answerMs: Int) {
+        public init(
+            questionId: String,
+            optionIndex: Int? = nil,
+            typedAnswer: String? = nil,
+            hintUsed: Bool? = nil,
+            answerMs: Int
+        ) {
             self.questionId = questionId
             self.optionIndex = optionIndex
             self.typedAnswer = typedAnswer
+            self.hintUsed = hintUsed
             self.answerMs = answerMs
         }
     }
@@ -232,16 +246,23 @@ public struct BackendClient: Sendable {
         )
     }
 
-    /// Typed-input mode (listen_type). Mutually exclusive with `optionIndex` on the wire.
+    /// Typed-input modes (listen_type, write_type_word, write_fill_gaps).
+    /// `hintUsed: true` resets the mastery streak per FR-009.
     public func answerLesson(
         lessonId: String,
         questionId: String,
         typedAnswer: String,
+        hintUsed: Bool = false,
         answerMs: Int
     ) async throws -> AnswerLessonResponse {
         try await post(
             "/lessons/\(lessonId)/answers",
-            body: AnswerLessonRequest(questionId: questionId, typedAnswer: typedAnswer, answerMs: answerMs),
+            body: AnswerLessonRequest(
+                questionId: questionId,
+                typedAnswer: typedAnswer,
+                hintUsed: hintUsed ? true : nil,
+                answerMs: answerMs
+            ),
             as: AnswerLessonResponse.self
         )
     }

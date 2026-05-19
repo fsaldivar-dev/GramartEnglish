@@ -8,16 +8,22 @@ export const LessonMode = z.enum([
   'listen_pick_word',
   'listen_pick_meaning',
   'listen_type',
+  'write_pick_word',
+  'write_type_word',
+  'write_fill_gaps',
 ]);
 export type LessonMode = z.infer<typeof LessonMode>;
 
-/** Modes shipped in feature 002. Modes that exist as enum values but are not in
- *  this list are "coming soon" and excluded from `modeRecommender` candidates. */
+/** Modes shipped in v1.3 (F003 adds write_pick_word + write_type_word; the
+ *  third write variant `write_fill_gaps` is a placeholder for v1.4 and is
+ *  excluded so `modeRecommender` doesn't propose it yet). */
 export const SHIPPED_MODES: readonly LessonMode[] = [
   'read_pick_meaning',
   'listen_pick_word',
   'listen_pick_meaning',
   'listen_type',
+  'write_pick_word',
+  'write_type_word',
 ];
 
 /** Listening modes — auto-play TTS on appear, reveal re-speaks (FR-006, FR-012). */
@@ -27,12 +33,23 @@ export const LISTENING_MODES: readonly LessonMode[] = [
   'listen_type',
 ];
 
+/** Writing modes — Spanish prompt on screen, English answer. Options or typed. */
+export const WRITING_MODES: readonly LessonMode[] = [
+  'write_pick_word',
+  'write_type_word',
+  'write_fill_gaps',
+];
+
 export function isListeningMode(mode: LessonMode): boolean {
   return LISTENING_MODES.includes(mode);
 }
 
+export function isWritingMode(mode: LessonMode): boolean {
+  return WRITING_MODES.includes(mode);
+}
+
 export function isTypedMode(mode: LessonMode): boolean {
-  return mode === 'listen_type';
+  return mode === 'listen_type' || mode === 'write_type_word' || mode === 'write_fill_gaps';
 }
 
 export const Uuid = z.string().uuid();

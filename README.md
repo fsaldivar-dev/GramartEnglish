@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.2.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.3.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -43,11 +43,15 @@ Feature 002 introduces four lesson modes, each tracked as an **independent** mas
 | `read_pick_meaning` | 📖 | See the English word in context, pick the Spanish meaning | Shipped (F001) |
 | `listen_pick_word` | 👂 | Hear audio, pick the English word from 4 options | Shipped (F002) |
 | `listen_pick_meaning` | 👂 | Hear audio, pick the Spanish meaning from 4 options | Shipped (F002) |
-| `listen_type` | ✏️ | Hear audio, type the word (typos within Levenshtein ≤ 1 accepted) | Shipped (F002) |
-| `write_pick_word`, `write_type_word` | ✏️ | Future: writing-prompt modes | Próximamente (F003) |
+| `listen_type` | 🎧 | Hear audio, type the word (typos within Levenshtein ≤ 1 accepted) | Shipped (F002) |
+| `write_pick_word` | ✏️ | See the Spanish meaning, pick the English word from 4 options | Shipped (F003) |
+| `write_type_word` | ✏️ | See the Spanish meaning, type the English word (Levenshtein ≤ 1 + hint button) | Shipped (F003) |
+| `write_fill_gaps` | ✏️ | See Spanish + masked English (e.g. `w__th_r`), type the missing letters | Próximamente (v1.4) |
 | `conjugate_pick_form` | 🔁 | Future: verb conjugation drills | Próximamente (F004) |
 
-Per-mode mastery is surfaced in three places: the Home cards (pending counts + "Recomendado para ti" tag), the post-lesson summary (badge strip showing all 4 counts), and the new **Mis palabras** screen.
+Per-mode mastery is surfaced in three places: the Home cards (pending counts + "Recomendado para ti" tag), the post-lesson summary (per-mode badge strip), and the **Mis palabras** screen.
+
+**Read vs. Write modes** train the same vocabulary in opposite directions: read modes test recognition (you see English, prove you know its meaning), write modes test active recall (you see Spanish, prove you can produce the English). A word can be mastered in `read_pick_meaning` and still pending in `write_type_word` — that's the "I recognize but can't produce" gap that productive practice closes.
 
 ## Repository layout
 

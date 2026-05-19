@@ -298,6 +298,26 @@ struct LessonFlowView: View {
                 onSkip: { Task { await vm.skip() } },
                 onExit: onExit
             )
+        case .writePickWord:
+            WritingLessonView(
+                question: q,
+                mode: mode,
+                progress: state.progress,
+                onAnswer: { idx in Task { await vm.answer(idx) } },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
+        case .writeTypeWord, .writeFillGaps:
+            WritingLessonView(
+                question: q,
+                mode: mode,
+                progress: state.progress,
+                onTypedAnswer: { text, hintUsed in
+                    Task { await vm.answerTyped(text, hintUsed: hintUsed) }
+                },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
         }
     }
 }

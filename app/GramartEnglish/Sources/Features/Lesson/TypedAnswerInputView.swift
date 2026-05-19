@@ -9,7 +9,11 @@ import SwiftUI
 struct TypedAnswerInputView: View {
     let questionId: String
     let canonical: String
-    let onSubmit: (String) -> Void
+    /// Submits with the trimmed text and whether the user revealed any letters
+    /// via the hint button during this question. Callers MUST forward the
+    /// `hintUsed` flag to the backend so FR-009 (no mastery credit when hints
+    /// were used) is respected end-to-end.
+    let onSubmit: (String, Bool) -> Void
     let onSkip: () -> Void
 
     @State private var text: String = ""
@@ -81,7 +85,7 @@ struct TypedAnswerInputView: View {
         if trimmed.isEmpty {
             onSkip()
         } else {
-            onSubmit(trimmed)
+            onSubmit(trimmed, hintChars > 0)
         }
     }
 

@@ -29,7 +29,9 @@ final class ModeCardTests: XCTestCase {
     }
 
     func testComingSoonInitRendersDisabled() {
-        let card = ModeCard(comingSoon: .writePickWord)
+        // F003 shipped writePickWord + writeTypeWord; writeFillGaps remains
+        // the placeholder for v1.4.
+        let card = ModeCard(comingSoon: .writeFillGaps)
         XCTAssertTrue(card.comingSoon)
         XCTAssertFalse(card.isEnabled)
         XCTAssertFalse(card.isRecommended)
