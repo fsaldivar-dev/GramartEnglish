@@ -3,7 +3,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { correlationIdPlugin } from './observability/correlationId.js';
-import { createLogger } from './observability/logger.js';
 import { openDb } from './store/db.js';
 import { getCurrentVersion } from './store/migrations/runner.js';
 import { loadCorpusIfEmpty } from './store/corpusLoader.js';
@@ -46,14 +45,61 @@ function readVersionJson(repoRoot: string): { version: string; schemaVersion: nu
 }
 
 function defaultRepoRoot(): string {
-  return join(fileURLToPath(import.meta.url), '..', '..', '..');
+  // Two layouts to support:
+  //   1. Dev (tsx watch): bundle lives at backend/src/server.ts, so three
+  //      `..` hops land us at the repo root which has `version.json`.
+  //   2. Production bundle: the esbuild output sits at
+  //      `<app>/Contents/Resources/backend/bundle.mjs` and the packager
+  //      copies `version.json` right next to it. The dirname IS the root.
+  // Probe both and return whichever actually has `version.json`.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const bundledRoot = here;                            // Resources/backend/
+  const devRoot = join(here, '..', '..', '..');        // repo root from src/
+  for (const root of [bundledRoot, devRoot]) {
+    try {
+      readFileSync(join(root, 'version.json'), 'utf8');
+      return root;
+    } catch { /* try next */ }
+  }
+  return devRoot; // last resort; the caller's readFileSync will error clearly
 }
 
 export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer> {
   const repoRoot = opts.repoRoot ?? defaultRepoRoot();
   const versionJson = readVersionJson(repoRoot);
-  const logger = createLogger();
-  const app = Fastify({ loggerInstance: logger, disableRequestLogging: false });
+  // Fastify 5 owns the logger so its FastifyBaseLogger type contract is
+  // honored end-to-end. The standalone pino factory we used to inject via
+  // `loggerInstance` no longer satisfies the stricter v5 type.
+  //
+  // pino-pretty is a devDep — only enabled when actually resolvable. The
+  // packaged production bundle ships without it and falls back to plain JSON
+  // logs (which the supervisor / log aggregator can consume).
+  const prettyAvailable = (() => {
+    try {
+      // Trying to import.meta.resolve is the cleanest probe, but isn't widely
+      // available at import time. Just try require'ing the module name; if
+      // missing the resolve throws.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return Boolean(require('node:module').createRequire(import.meta.url).resolve('pino-pretty'));
+    } catch { return false; }
+  })();
+  const isDev = prettyAvailable && process.env.NODE_ENV !== 'production';
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL ?? 'info',
+      base: { service: 'gramart-english-backend' },
+      timestamp: () => `,"time":"${new Date().toISOString()}"`,
+      ...(isDev
+        ? {
+            transport: {
+              target: 'pino-pretty',
+              options: { colorize: true, translateTime: 'SYS:HH:MM:ss.l' },
+            },
+          }
+        : {}),
+    },
+    disableRequestLogging: false,
+  });
 
   const db = openDb({ filename: opts.dbFilename ?? ':memory:' });
   const llm = opts.llm ?? new OllamaAdapter();
@@ -61,7 +107,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
   if (!opts.skipCorpusBootstrap) {
     const result = loadCorpusIfEmpty(db, join(repoRoot, 'data', 'cefr'));
     if (result.inserted > 0) {
-      logger.info({ inserted: result.inserted, total: result.total }, 'corpus.loaded');
+      app.log.info({ inserted: result.inserted, total: result.total }, 'corpus.loaded');
     }
     new UserRepository(db).ensureSingleton();
   }
@@ -81,12 +127,12 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
   const index = new RagIndex(ragIndexDir, versionJson.schemaVersion ?? 1, ragIndexDim);
   try {
     if (index.load()) {
-      logger.info({ size: index.size() }, 'rag.index.loaded');
+      app.log.info({ size: index.size() }, 'rag.index.loaded');
     } else {
-      logger.info('rag.index.not_built — /words/* will use canonical fallback until ingestion runs');
+      app.log.info('rag.index.not_built — /words/* will use canonical fallback until ingestion runs');
     }
   } catch (err) {
-    logger.warn({ err }, 'rag.index.load_failed');
+    app.log.warn({ err }, 'rag.index.load_failed');
   }
   await registerWordsRoutes(app, { db, index: index.isReady() ? index : null, llm, chatModel, embeddingModel });
   await registerProgressRoutes(app, { db });
