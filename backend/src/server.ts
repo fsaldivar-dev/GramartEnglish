@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -76,11 +77,10 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
   // logs (which the supervisor / log aggregator can consume).
   const prettyAvailable = (() => {
     try {
-      // Trying to import.meta.resolve is the cleanest probe, but isn't widely
-      // available at import time. Just try require'ing the module name; if
-      // missing the resolve throws.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return Boolean(require('node:module').createRequire(import.meta.url).resolve('pino-pretty'));
+      // `import.meta.resolve` isn't widely available at runtime; use the
+      // require-resolve probe instead. If pino-pretty isn't installed (e.g.
+      // the bundled prod backend), .resolve throws and we skip the transport.
+      return Boolean(createRequire(import.meta.url).resolve('pino-pretty'));
     } catch { return false; }
   })();
   const isDev = prettyAvailable && process.env.NODE_ENV !== 'production';
