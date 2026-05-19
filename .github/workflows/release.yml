@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  # Auto-trigger on every push to main (post-merge). This is the "integration"
+  # path the user asked for: each merge produces a runnable .app.
+  push:
+    branches: [main]
+    tags: ['v*']
+  # Manual trigger so we can re-cut a release without pushing a no-op commit.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.2.0). Empty = use commit SHA.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write  # needed to create the GitHub Release + upload assets
+
+jobs:
+  build-app:
+    name: Build & publish GramartEnglish.app
+    runs-on: macos-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # tag detection needs full history
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s "$DEVELOPER_DIR"
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Read version
+        id: ver
+        run: |
+          VER=$(node -p "require('./version.json').version")
+          if [[ -n "${{ inputs.tag }}" ]]; then TAG="${{ inputs.tag }}"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then TAG="${GITHUB_REF#refs/tags/}"
+          else TAG="v${VER}+${GITHUB_SHA::7}"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Building $TAG (version.json says $VER)"
+
+      - name: Build .app bundle
+        run: ./scripts/build-app.sh
+
+      - name: Zip the .app
+        id: pack
+        run: |
+          cd dist
+          ASSET="GramartEnglish-${{ steps.ver.outputs.tag }}-arm64.zip"
+          # `ditto -ck --rsrc --keepParent` preserves codesign + symlinks
+          # better than plain `zip` on macOS.
+          ditto -ck --rsrc --keepParent GramartEnglish.app "$ASSET"
+          shasum -a 256 "$ASSET" | tee "${ASSET}.sha256"
+          echo "asset=dist/$ASSET" >> "$GITHUB_OUTPUT"
+          echo "checksum=dist/${ASSET}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact (always — even on push-to-main without tag)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GramartEnglish-${{ steps.ver.outputs.tag }}
+          path: |
+            ${{ steps.pack.outputs.asset }}
+            ${{ steps.pack.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release (only on tag push or manual dispatch with tag)
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: GramartEnglish ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.pack.outputs.asset }}
+            ${{ steps.pack.outputs.checksum }}
