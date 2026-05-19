@@ -1,8 +1,12 @@
-# GramartEnglish
+<div align="center">
+  <img src=".github/assets/app-icon.png" alt="GramartEnglish app icon" width="160" height="160" />
 
-A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
+  # GramartEnglish
 
-**Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
+
+  **Latest release** · [v1.2.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+</div>
 
 ## Principles
 
