@@ -105,25 +105,51 @@ public actor BackendSupervisor {
     }
 
     private func readHandshake(from pipe: Pipe) async throws -> Handshake {
+        // Stream stdout and try parsing each newline-terminated line as a
+        // Handshake. Skip lines that aren't (they're pino log entries the
+        // bundled backend emits during boot — `corpus.loaded`,
+        // `rag.index.not_built`, etc. — and arrive BEFORE the handshake).
+        //
+        // `availableData` is non-blocking unless the pipe is closed; we poll
+        // on a 50ms cadence so the deadline check actually fires.
         let handle = pipe.fileHandleForReading
         var buffer = Data()
-        let timeout: TimeInterval = 5
+        let timeout: TimeInterval = 10
         let deadline = Date().addingTimeInterval(timeout)
+        var skippedLines = 0
         while Date() < deadline {
-            let chunk = try handle.read(upToCount: 4096) ?? Data()
+            let chunk = handle.availableData
             if chunk.isEmpty {
                 try await Task.sleep(nanoseconds: 50_000_000)
                 continue
             }
             buffer.append(chunk)
-            if let newlineIndex = buffer.firstIndex(of: 0x0A) {
+            while let newlineIndex = buffer.firstIndex(of: 0x0A) {
                 let lineData = buffer.prefix(upTo: newlineIndex)
+                buffer.removeSubrange(0...newlineIndex)
                 guard let line = String(data: lineData, encoding: .utf8) else {
-                    throw SupervisorError.handshakeMalformed("non-utf8")
+                    skippedLines += 1
+                    continue
                 }
-                return try Self.parseHandshake(line)
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty { continue }
+                // Heuristic: only attempt parse on lines that look like the
+                // handshake shape `{"port":...}`. Saves wasteful decode work
+                // on the dozen pino log lines that go through this pipe.
+                if !trimmed.hasPrefix("{\"port\"") {
+                    skippedLines += 1
+                    continue
+                }
+                do {
+                    return try Self.parseHandshake(trimmed)
+                } catch {
+                    skippedLines += 1
+                    if skippedLines > 32 {
+                        throw SupervisorError.handshakeMalformed("no handshake after \(skippedLines) lines")
+                    }
+                }
             }
         }
-        throw SupervisorError.handshakeMalformed("timeout after \(timeout)s")
+        throw SupervisorError.handshakeMalformed("timeout after \(timeout)s, skipped \(skippedLines) lines")
     }
 }

@@ -60,19 +60,80 @@ final class AppBootstrap: ObservableObject {
     func start() async {
         FileLogger.shared.log("info", "app.launch.begin")
 
-        // For Phase 2 the supervisor is wired but the backend binary is not yet
-        // bundled into the .app. In development we expect a backend already
-        // running locally (see GRAMART_BACKEND_URL); in production this branch
-        // launches the embedded backend via BackendSupervisor.
+        // Two launch paths:
+        //   1. Dev / CI: `GRAMART_BACKEND_URL` points at a backend you started
+        //      separately (`pnpm dev` or `./scripts/dev.sh backend`).
+        //   2. Production .app: the backend is bundled inside
+        //      `Contents/Resources/backend/`. Spawn it via BackendSupervisor.
         if let urlString = ProcessInfo.processInfo.environment["GRAMART_BACKEND_URL"],
            let url = URL(string: urlString) {
             self.backendURL = url
             await probeBackend(at: url)
-        } else {
+            return
+        }
+
+        await launchEmbeddedBackend()
+    }
+
+    private func launchEmbeddedBackend() async {
+        FileLogger.shared.log("info", "app.launch.embedded.step1_resolve_bundle")
+        guard let resourceDir = Bundle.main.resourceURL else {
+            state = .failed("No Bundle.main.resourceURL — not running from an .app bundle")
+            FileLogger.shared.log("error", "app.launch.embedded.no_resource_url")
+            return
+        }
+        let backendDir = resourceDir.appendingPathComponent("backend", isDirectory: true)
+        let nodeBinary = backendDir.appendingPathComponent("node")
+        let scriptPath = backendDir.appendingPathComponent("bundle.mjs")
+
+        FileLogger.shared.log("info", "app.launch.embedded.step2_check_binary", fields: [
+            "nodePath": nodeBinary.path,
+            "exists": String(FileManager.default.fileExists(atPath: nodeBinary.path)),
+            "executable": String(FileManager.default.isExecutableFile(atPath: nodeBinary.path)),
+        ])
+        guard FileManager.default.isExecutableFile(atPath: nodeBinary.path) else {
             state = .failed(
-                "No embedded backend bundled yet. Set GRAMART_BACKEND_URL to a running backend for dev."
+                "Embedded backend missing at \(backendDir.path). Run scripts/package-backend.sh + scripts/build-app.sh to produce a runnable .app."
             )
-            FileLogger.shared.log("warn", "app.launch.no_backend_url")
+            FileLogger.shared.log("error", "app.launch.no_embedded_backend", fields: ["path": backendDir.path])
+            return
+        }
+
+        // Persistent DB lives in ~/.gramart-english/app.db so user data
+        // survives app updates and lives outside the .app bundle (which is
+        // read-only when installed in /Applications).
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory())
+        let dbDir = support.appendingPathComponent("GramartEnglish", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dbDir, withIntermediateDirectories: true)
+        let dbFile = dbDir.appendingPathComponent("app.db")
+
+        let opts = BackendSupervisor.LaunchOptions(
+            nodeBinary: nodeBinary,
+            scriptPath: scriptPath,
+            workingDirectory: backendDir,
+            environment: [
+                "NODE_ENV": "production",
+                "GRAMART_DB": dbFile.path,
+                "GRAMART_REPO_ROOT": backendDir.path,
+            ],
+            maxRelaunches: 2
+        )
+
+        FileLogger.shared.log("info", "app.launch.embedded.step3_spawning")
+        do {
+            let handshake = try await supervisor.start(opts)
+            let url = URL(string: "http://127.0.0.1:\(handshake.port)")!
+            self.backendURL = url
+            FileLogger.shared.log("info", "app.launch.embedded_started", fields: [
+                "port": String(handshake.port),
+                "pid": String(handshake.pid),
+                "version": handshake.version,
+            ])
+            await probeBackend(at: url)
+        } catch {
+            state = .failed("Failed to launch embedded backend: \(error)")
+            FileLogger.shared.log("error", "app.launch.embedded_failed", fields: ["error": "\(error)"])
         }
     }
 
