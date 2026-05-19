@@ -1,0 +1,28 @@
+included:
+  - GramartEnglish/Sources
+  - Packages/LessonKit/Sources
+  - Packages/BackendClient/Sources
+
+excluded:
+  - "**/.build"
+  - "**/DerivedData"
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - implicit_return
+  - last_where
+  - sorted_imports
+  - trailing_closure
+  - unused_import
+
+line_length:
+  warning: 120
+  error: 160
+
+identifier_name:
+  min_length: 2
+
+reporter: "xcode"
