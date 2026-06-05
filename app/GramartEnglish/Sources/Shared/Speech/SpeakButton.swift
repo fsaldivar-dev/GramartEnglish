@@ -14,17 +14,31 @@ struct SpeakButton: View {
     /// inglés" — misleading because the audio is a full example sentence.
     var accessibilityLabelOverride: String? = nil
 
-    private var symbol: String {
-        rate == .slow ? "tortoise.fill" : "speaker.wave.2.fill"
+    /// F009 Item 4 (v1.10.0). Priya's panel: the v1.9.0 dimming was a
+    /// good first signal but a learner who's used to seeing the speaker
+    /// icon doesn't immediately read "dim" as "muted". Swap to the
+    /// `speaker.slash.fill` glyph (same SF Symbol family as the chrome
+    /// `MuteToggleButton`) so the affordance is visually consistent.
+    /// Tap behavior is unchanged — the v1.4.1 F3 `isUserInitiated`
+    /// bypass still plays audio on explicit tap.
+    private func symbolName(isMuted: Bool) -> String {
+        if isMuted { return "speaker.slash.fill" }
+        return rate == .slow ? "tortoise.fill" : "speaker.wave.2.fill"
     }
 
-    private var a11yLabel: String {
+    private func a11yLabel(isMuted: Bool) -> String {
+        let base: String
         if let accessibilityLabelOverride {
-            return accessibilityLabelOverride
+            base = accessibilityLabelOverride
+        } else {
+            base = rate == .slow
+                ? "Reproducir palabra en inglés despacio"
+                : "Reproducir palabra en inglés"
         }
-        return rate == .slow
-            ? "Reproducir palabra en inglés despacio"
-            : "Reproducir palabra en inglés"
+        // VoiceOver suffix so screen-reader users learn the muted state
+        // even when the slash glyph isn't visually informative for them.
+        // Spanish wording matches the chrome MuteToggleButton's locale.
+        return isMuted ? "\(base) (audio silenciado)" : base
     }
 
     private var a11yHint: String {
@@ -50,14 +64,14 @@ struct SpeakButton: View {
             // v1.4.1 F3: explicit user tap → bypass the mute toggle.
             SpeechService.shared.speakEnglish(text, rate: rate, isUserInitiated: true)
         } label: {
-            Image(systemName: symbol)
+            Image(systemName: symbolName(isMuted: isMuted))
                 .font(.system(size: size))
                 .foregroundStyle(isMuted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .padding(8)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(a11yLabel)
+        .accessibilityLabel(a11yLabel(isMuted: isMuted))
         .accessibilityHint(a11yHint)
 
         if let shortcut {
