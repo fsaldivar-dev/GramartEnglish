@@ -53,3 +53,45 @@ Cleaner: add a parallel `isConjugation` flag. `WritingLessonView` stays single-a
 ## R6. Why bump to **MINOR** 1.6.0 and not PATCH 1.5.4?
 
 Per Constitution V — a new shipped LessonMode that the client surfaces on Home and that adds DTO fields is unambiguously additive-feature territory. PATCH is reserved for bug fixes + polish. MINOR is correct.
+
+## R7. v1.6.0 patch: exclude `base === simple_past` verbs from `conjugate_pick_form`
+
+USER (Marisol, A2) hit `verb_read` in her first lesson: the prompt was
+"Pasado simple de **leer**" with options that included `read` (correct
+past) and `read` (base) — visually identical, unanswerable without audio.
+
+**Rule**: any verb where `base.toLowerCase() === simple_past.toLowerCase()`
+is excluded from the `conjugate_pick_form` selector. Other modes
+(`read_pick_meaning`, `write_*`, `listen_*`) are unaffected — those modes
+key on meaning + audio, not on tense form.
+
+The English verbs caught by this rule (not all of which ship in our
+corpus): `read`, `cut`, `put`, `hit`, `let`, `set`, `cost`, `hurt`,
+`bet`, `quit`, `shut`, `spread`. We deleted `verb_read` from
+`data/cefr/verbs.json` in this patch. Corpus dropped from 60 → 59
+verbs (A2: 40 → 39, B1: 20 unchanged). Both pools remain comfortably
+above the `LESSON_SIZE = 10` floor.
+
+The predicate is exposed as `isAmbiguousForPickForm()` in
+`verbConjugationBuilder.ts` so future additions to `verbs.json` are
+guarded by a test (`verbConjugationBuilder.test.ts` → "excludes verbs
+whose base equals simple_past from conjugate_pick_form").
+
+## R8. v1.6.0 patch: per-verb example sentences to disambiguate tense
+
+Spanish distinguishes preterite (`comí`) from imperfect (`comía`); English
+collapses both to `ate`. A learner can mentally answer "comía → eated"
+and feel cheated when the app marks them correct for the "wrong" reason
+(or wrong for the "right" reason). Adding the temporal-marker example
+("Ayer ___ tacos.") anchors the answer to past simple specifically.
+
+Each verb in `verbs.json` ships:
+- `example_es`: Spanish sentence with `___` for the verb slot, anchored
+  by a temporal marker (ayer, anoche, la semana pasada, el año pasado,
+  el verano pasado, el mes pasado).
+- `example_en`: English translation with the verb already conjugated,
+  revealed post-answer for reinforcement.
+
+The Spanish example renders below the "Pasado simple de **<es>**" hero
+in a secondary style. The blank `___` IS the disambiguator — it tells
+the learner exactly where the answer belongs.
