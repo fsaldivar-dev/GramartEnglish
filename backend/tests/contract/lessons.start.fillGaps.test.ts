@@ -21,9 +21,9 @@ describe('POST /v1/lessons — write_fill_gaps (v1.5 contract)', () => {
   // actually exercised, because A1 deck composition is probabilistic.
   // We now drive the route with deterministic seeds and assert BOTH branches
   // are observed: at least one long word with a maskedWord AND at least
-  // one ≤3-letter word that auto-promoted (no maskedWord, wire mode
-  // still `write_fill_gaps`).
-  it('returns maskedWord for long words AND deterministically exercises ≤3-letter auto-promotion', async () => {
+  // one ≤3-letter word. v1.5.1 — short words ALSO carry a first-letter
+  // scaffold `maskedWord`; wire mode stays `write_fill_gaps` for both.
+  it('returns maskedWord for both long words AND ≤3-letter auto-promoted (v1.5.1 scaffold)', async () => {
     const built = await buildServer({ dbFilename: ':memory:', llm: new RecordedFakeLlm(), repoRoot: REPO_ROOT });
     app = built.app;
 
@@ -67,11 +67,19 @@ describe('POST /v1/lessons — write_fill_gaps (v1.5 contract)', () => {
       expect(typeof q.prompt).toBe('string');
       if (q.word.length <= 3) {
         shortSeen += 1;
-        // Auto-promoted by the gap masker — server omits maskedWord, but
-        // the wire mode echoes back as `write_fill_gaps` so the client
-        // routes the question through the same lesson screen (the
-        // promotion is server-side and opaque, FR-007).
-        expect(q.maskedWord, `seed=${chosenSeed} word=${q.word}`).toBeUndefined();
+        // v1.5.1 — auto-promoted ≤3-letter words now ship a first-letter
+        // scaffold so the "completa la palabra" UI promise is honored.
+        // Wire mode echoes back as `write_fill_gaps` (server-side promotion
+        // is opaque to the client, FR-007). 1-letter words are a defensive
+        // case with no scaffold (not in the A1 corpus).
+        if (q.word.length === 1) {
+          expect(q.maskedWord, `seed=${chosenSeed} word=${q.word}`).toBeUndefined();
+        } else {
+          expect(typeof q.maskedWord, `seed=${chosenSeed} word=${q.word}`).toBe('string');
+          const masked = q.maskedWord!;
+          expect(masked.length).toBe(q.word.length);
+          expect(masked[0]).toBe(q.word[0]);
+        }
       } else {
         longSeen += 1;
         expect(typeof q.maskedWord).toBe('string');
