@@ -4,8 +4,11 @@
  * Spec: `specs/003-writing-modes/research.md` §1 (locked algorithm).
  *
  * Rules (in order):
- *   1. Words length ≤ 3 → `autoPromoted: true`, `masked` = original word.
- *      Caller (lessonService) treats these as `write_type_word` semantics.
+ *   1. Words length ≤ 3 → `autoPromoted: true`. `masked` is a first-letter
+ *      scaffold (`eat` → `e__`, `go` → `g_`, `it` → `i_`). 1-letter words
+ *      cannot be scaffolded meaningfully and are returned as-is. Caller
+ *      (lessonService) treats these as `write_fill_gaps` with the scaffold —
+ *      the visual "completa la palabra" promise is honored (v1.5.1).
  *   2. Always keep first letter visible.
  *   3. Remove vowels first: a, e, i, o, u. `y` counts as a vowel ONLY when
  *      it's the last character of the word (word-final).
@@ -34,9 +37,16 @@ export function maskWord(word: string): MaskResult {
   const lower = word.toLowerCase();
   const n = lower.length;
 
-  // Rule 1: short words auto-promote.
+  // Rule 1: short words auto-promote. v1.5.1 — emit a first-letter scaffold
+  // so the "completa la palabra" UI promise is honored (the input shows the
+  // anchor letter followed by underscores for the remaining positions).
+  // 1-letter words have no remaining positions to mask; return as-is.
   if (n <= 3) {
-    return { masked: original, autoPromoted: true };
+    if (n <= 1) {
+      return { masked: original, autoPromoted: true };
+    }
+    const scaffold = original[0]! + '_'.repeat(n - 1);
+    return { masked: scaffold, autoPromoted: true };
   }
 
   const cap = Math.floor(n / 2); // never remove more than half (rule 5)

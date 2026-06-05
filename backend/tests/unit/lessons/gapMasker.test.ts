@@ -17,16 +17,25 @@ describe('maskWord (F003 US3, research §1)', () => {
     expect(ratio).toBeLessThanOrEqual(0.5);
   });
 
-  it('eat (3 letters) auto-promotes', () => {
+  it('eat (3 letters) auto-promotes with first-letter scaffold (v1.5.1)', () => {
     const { masked, autoPromoted } = maskWord('eat');
     expect(autoPromoted).toBe(true);
-    expect(masked).toBe('eat');
+    expect(masked).toBe('e__');
   });
 
-  it('ok (2 letters) auto-promotes', () => {
-    const r = maskWord('ok');
+  it('go (2 letters) auto-promotes with first-letter scaffold (v1.5.1)', () => {
+    const r = maskWord('go');
     expect(r.autoPromoted).toBe(true);
-    expect(r.masked).toBe('ok');
+    expect(r.masked).toBe('g_');
+  });
+
+  it('year (4 letters, boundary) → standard masking, NOT auto-promoted', () => {
+    const { masked, autoPromoted } = maskWord('year');
+    expect(autoPromoted).toBe(false);
+    expect(masked.length).toBe(4);
+    expect(masked[0]).toBe('y');
+    // At least one underscore — standard masker engaged.
+    expect(masked).toContain('_');
   });
 
   it('language → first letter preserved, gap ratio ≤ 50 %', () => {

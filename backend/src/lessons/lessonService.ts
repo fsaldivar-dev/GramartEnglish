@@ -113,14 +113,16 @@ export class LessonService {
       if (isWriting) {
         base.prompt = word.spanishOption;
       }
-      // v1.5 F003 US3: write_fill_gaps adds a scaffolded mask. For words ≤ 3
-      // letters the masker auto-promotes (rule 1 in research §1) — we omit
-      // `maskedWord` so the client renders typed-input only, identical to
-      // write_type_word. Lesson row stays mode=write_fill_gaps, mastery
-      // axis intact (FR-007). Auto-promotion is server-side and opaque.
+      // v1.5 F003 US3: write_fill_gaps adds a scaffolded mask. v1.5.1 — for
+      // words ≤ 3 letters the masker still auto-promotes (rule 1 in research
+      // §1) but now returns a first-letter scaffold (`eat` → `e__`), which we
+      // forward as `maskedWord` so the "completa la palabra" UI promise is
+      // honored. Lesson row stays mode=write_fill_gaps, mastery axis intact
+      // (FR-007). `maskedWord` is omitted only when the masker produced no
+      // usable scaffold (1-letter defensive case).
       if (mode === 'write_fill_gaps') {
-        const { masked, autoPromoted } = maskWord(word.base);
-        if (!autoPromoted) {
+        const { masked } = maskWord(word.base);
+        if (masked && masked !== word.base) {
           base.maskedWord = masked;
         }
       }
