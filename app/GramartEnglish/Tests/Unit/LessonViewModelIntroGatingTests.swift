@@ -69,6 +69,7 @@ final class LessonViewModelIntroGatingTests: XCTestCase {
           "base": "\(base)",
           "es": "ir",
           "exampleEs": "Ayer ___ al cine con mi hermana.",
+          "exampleEsFilled": "Ayer fui al cine con mi hermana.",
           "exampleEn": "Yesterday I went to the movies with my sister.",
           "audioBase": "\(base).mp3"
         }
