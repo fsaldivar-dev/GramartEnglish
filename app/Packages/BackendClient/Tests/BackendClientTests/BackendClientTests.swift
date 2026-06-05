@@ -58,6 +58,40 @@ final class BackendClientTests: XCTestCase {
         XCTAssertEqual(levels.first?.code, "A1")
     }
 
+    func testResumeLessonHitsGetEndpoint() async throws {
+        // F007 patch (v1.8.0). The resume path must issue GET /v1/lessons/:id
+        // and never POST /v1/lessons — otherwise the backend creates a new
+        // lesson row and the user lands at Q1 of a different deck.
+        let client = makeClient()
+        let expectation = XCTestExpectation(description: "GET observed")
+        MockURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/v1/lessons/abc-123")
+            expectation.fulfill()
+            let body = """
+            {
+              "lessonId": "abc-123",
+              "mode": "read_pick_meaning",
+              "level": "A1",
+              "answeredCount": 3,
+              "totalCount": 10,
+              "questions": [
+                {"id":"q4","word":"house","options":["A","B","C","D"],"position":3}
+              ]
+            }
+            """.data(using: .utf8)!
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, body)
+        }
+        let result = try await client.resumeLesson(lessonId: "abc-123")
+        await fulfillment(of: [expectation], timeout: 1)
+        XCTAssertEqual(result.lessonId, "abc-123")
+        XCTAssertEqual(result.mode, "read_pick_meaning")
+        XCTAssertEqual(result.answeredCount, 3)
+        XCTAssertEqual(result.questions.count, 1)
+        XCTAssertEqual(result.questions.first?.position, 3)
+    }
+
     func testNon2xxThrowsHttpError() async {
         let client = makeClient()
         MockURLProtocol.handler = { request in

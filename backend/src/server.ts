@@ -149,7 +149,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
     app.log.warn({ err }, 'rag.index.load_failed');
   }
   await registerWordsRoutes(app, { db, index: index.isReady() ? index : null, llm, chatModel, embeddingModel });
-  await registerProgressRoutes(app, { db });
+  await registerProgressRoutes(app, { db, corpusDir });
   await registerMeRoutes(app, { db });
 
   app.get('/v1/health', async () => ({

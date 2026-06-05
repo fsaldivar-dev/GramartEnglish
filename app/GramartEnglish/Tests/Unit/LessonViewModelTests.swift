@@ -148,6 +148,55 @@ final class LessonViewModelTests: XCTestCase {
         XCTAssertEqual(store.load()?.phase, .revealing)
     }
 
+    // F007 patch (v1.8.0) Blocker — resume routes to GET /v1/lessons/:id,
+    // never to POST /v1/lessons. Pinning this with a hard assertion so a
+    // future refactor that drops `resumeId` from `start()` fails loudly.
+
+    nonisolated private static func resumeBody() -> Data {
+        """
+        {
+          "lessonId": "11111111-1111-4111-8111-111111111111",
+          "mode": "read_pick_meaning",
+          "level": "A1",
+          "answeredCount": 4,
+          "totalCount": 10,
+          "questions": [
+            {"id":"33333333-3333-4333-8333-333333333335","word":"five","options":["A","B","C","D"],"position":4},
+            {"id":"33333333-3333-4333-8333-333333333336","word":"six","options":["A","B","C","D"],"position":5}
+          ]
+        }
+        """.data(using: .utf8)!
+    }
+
+    func testResumeUsesGetNotPostAndSurfacesBanner() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        var postCalled = false
+        TestURLProtocol.handler = { request in
+            let path = request.url?.path ?? ""
+            let method = request.httpMethod ?? ""
+            if method == "POST" && path.hasSuffix("/lessons") {
+                postCalled = true
+                XCTFail("Resume must not POST /lessons — that creates a new lesson row")
+                return (500, Data())
+            }
+            if method == "GET" && path.contains("/lessons/11111111-1111-4111-8111-111111111111") {
+                return (200, Self.resumeBody())
+            }
+            return (404, Data())
+        }
+        await vm.start(resumeId: "11111111-1111-4111-8111-111111111111")
+        guard case .answering(let state) = vm.phase else {
+            return XCTFail("expected answering after resume, got \(vm.phase)")
+        }
+        XCTAssertFalse(postCalled)
+        XCTAssertEqual(state.lessonId, "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(state.questions.count, 2, "resume returns only remaining questions")
+        XCTAssertEqual(state.currentQuestion?.word, "five")
+        XCTAssertEqual(vm.resumeBanner?.currentQuestionIndex, 4)
+        XCTAssertEqual(vm.resumeBanner?.totalCount, 10)
+    }
+
     func testSnapshotIsClearedOnComplete() async {
         let store = freshStateStore()
         let vm = makeViewModelWithStore(store)

@@ -95,11 +95,12 @@ struct ReadyFlowView: View {
                     onOpenSettings: { settingsPresentationId += 1; showSettings = true },
                     onOpenMyWords: { showMyWords = true }
                 )
-            case .lesson(let level, let mode, _):
+            case .lesson(let level, let mode, let resumeId):
                 LessonFlowView(
                     client: client,
                     level: level,
                     mode: mode,
+                    resumeId: resumeId,
                     onExit: { Task { await goHome(level: level) } }
                 )
             }
@@ -219,6 +220,15 @@ struct LessonFlowView: View {
     private let client: BackendClient
     private let level: String
     private let mode: LessonMode
+    /// F007 patch (v1.8.0). When non-nil, `.task` calls `vm.start(resumeId:)`
+    /// instead of a fresh `start()`, so the user returns to the in-flight
+    /// lesson identified by the local snapshot rather than starting a brand
+    /// new lesson (the original bug).
+    private let resumeId: String?
+    /// F007 banner state. Set true on first appear when the VM has a
+    /// `resumeBanner` payload; the banner auto-dismisses after 3s or on
+    /// first user interaction.
+    @State private var showingResumeBanner = false
 
     struct ExamplesContext: Identifiable {
         let id = UUID()
@@ -226,15 +236,83 @@ struct LessonFlowView: View {
         let level: String
     }
 
-    init(client: BackendClient, level: String, mode: LessonMode = .readPickMeaning, onExit: @escaping () -> Void) {
+    init(
+        client: BackendClient,
+        level: String,
+        mode: LessonMode = .readPickMeaning,
+        resumeId: String? = nil,
+        onExit: @escaping () -> Void
+    ) {
         self.client = client
         self.level = level
         self.mode = mode
+        self.resumeId = resumeId
         self.onExit = onExit
         _vm = StateObject(wrappedValue: LessonViewModel(client: client, level: level, mode: mode))
     }
 
     var body: some View {
+        ZStack(alignment: .top) {
+            content
+            if showingResumeBanner, let banner = vm.resumeBanner {
+                resumeBannerView(banner: banner)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(10)
+            }
+        }
+        .task { await vm.start(resumeId: resumeId) }
+        .onChange(of: vm.resumeBanner) { _, newValue in
+            if newValue != nil {
+                showingResumeBanner = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    withAnimation { showingResumeBanner = false }
+                }
+            }
+        }
+        .sheet(item: $examplesWord) { context in
+            ExamplesPanelView(
+                viewModel: WordExamplesViewModel(client: client, word: context.word, level: context.level),
+                onClose: { examplesWord = nil }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func resumeBannerView(banner: LessonViewModel.ResumeBanner) -> some View {
+        // F007 patch (v1.8.0). Marisol + Priya: dropping a returning learner
+        // into a question with zero context is "trabajo a medias" and breaks
+        // the Fogg Trigger re-prime. Show a transient strip naming where they
+        // are + a "start fresh" escape hatch.
+        let copy = "Continuando donde quedaste · pregunta \(banner.currentQuestionIndex + 1) de \(banner.totalCount)"
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .foregroundStyle(.tint)
+            Text(copy)
+                .font(.callout)
+                .accessibilityAddTraits(.isHeader)
+            Spacer()
+            Button("Empezar de nuevo") {
+                showingResumeBanner = false
+                LessonStateStore.shared.clear()
+                vm.resumeBanner = nil
+                Task { await vm.start(resumeId: nil) }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityHint("Descarta el avance y comienza una lección nueva")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(copy)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         Group {
             switch vm.phase {
             case .idle, .loading:
@@ -287,13 +365,6 @@ struct LessonFlowView: View {
             case .failed(let message):
                 ScaffoldFailedView(message: message)
             }
-        }
-        .task { await vm.start() }
-        .sheet(item: $examplesWord) { context in
-            ExamplesPanelView(
-                viewModel: WordExamplesViewModel(client: client, word: context.word, level: context.level),
-                onClose: { examplesWord = nil }
-            )
         }
     }
 
