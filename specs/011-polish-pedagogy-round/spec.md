@@ -77,8 +77,17 @@ This item ships a regression net (`SnapshotTotalCountTests.swift`,
 
 - Backend changes (no schema, no endpoint, no `openapi.yaml` shape).
 - Named-edge `.padding(.top, N)` migration — follow-up pass.
-- Cheatsheet menu-bar integration (Help menu wiring stays as-is; the
-  ⌘`/` shortcut is the primary discovery path).
+- v1.12.0 patch note (Mariana, framing honesty): v1.12 does NOT
+  migrate `.padding(.edge, N)` named-edge literals. The bare-number
+  sweep covers ~13 % of the codebase's padding call-sites; the
+  remaining ~60 named-edge literals are deferred to v1.13. Phrases
+  like "design system complete" or "final padding sweep" should not
+  be used for v1.12.
+- Cheatsheet menu-bar integration — superseded by the v1.12.0
+  blocker-2 patch (a `CommandGroup(replacing: .help)` ships an
+  "Atajos de teclado" Help-menu item with ⌘`/`, restoring the
+  discovery affordance the in-window hidden trigger alone couldn't
+  provide).
 
 ## Personas in the room
 
