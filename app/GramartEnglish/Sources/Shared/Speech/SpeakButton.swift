@@ -8,13 +8,21 @@ struct SpeakButton: View {
     /// F007 (v1.8.0). Defaults to `.normal` so existing call-sites keep
     /// their behavior; the new "🐢 lento" affordance opts in.
     var rate: SpeechRate = .normal
+    /// F007 patch (v1.8.0). When the speaker plays a sentence rather than a
+    /// single word, the call-site can override the a11y label. Lucía caught
+    /// the VerbIntroCard sentence buttons announcing "Reproducir palabra en
+    /// inglés" — misleading because the audio is a full example sentence.
+    var accessibilityLabelOverride: String? = nil
 
     private var symbol: String {
         rate == .slow ? "tortoise.fill" : "speaker.wave.2.fill"
     }
 
     private var a11yLabel: String {
-        rate == .slow
+        if let accessibilityLabelOverride {
+            return accessibilityLabelOverride
+        }
+        return rate == .slow
             ? "Reproducir palabra en inglés despacio"
             : "Reproducir palabra en inglés"
     }
@@ -22,8 +30,8 @@ struct SpeakButton: View {
     private var a11yHint: String {
         if shortcut == nil {
             return rate == .slow
-                ? "Reproduce la palabra en inglés a velocidad lenta"
-                : "Reproduce la palabra en inglés"
+                ? "Reproduce el audio a velocidad lenta"
+                : "Reproduce el audio en inglés"
         }
         let key = String(shortcut!.character).uppercased()
         return rate == .slow

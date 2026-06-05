@@ -116,8 +116,18 @@ struct VerbIntroCard: View {
                             // line so it's obvious which sentence plays.
                             // No shortcuts here — `s`/`d` are already
                             // claimed by the base-form pair above.
-                            SpeakButton(text: intro.exampleEn, size: 14, rate: .normal)
-                            SpeakButton(text: intro.exampleEn, size: 14, rate: .slow)
+                            SpeakButton(
+                                text: intro.exampleEn,
+                                size: 14,
+                                rate: .normal,
+                                accessibilityLabelOverride: "Reproducir oración en inglés"
+                            )
+                            SpeakButton(
+                                text: intro.exampleEn,
+                                size: 14,
+                                rate: .slow,
+                                accessibilityLabelOverride: "Reproducir oración en inglés despacio"
+                            )
                         }
                     }
                     .padding(16)
