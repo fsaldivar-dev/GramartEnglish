@@ -1,0 +1,7 @@
+# F011 (v1.12.0) — no backend surface area changes.
+#
+# This release is corpus + Swift-side polish + tests. The OpenAPI
+# document only moves `info.version: 1.11.0 → 1.12.0`; no path or
+# schema add/modify/remove.
+#
+# Intentionally empty.
