@@ -139,7 +139,13 @@ struct AnswerFeedbackView: View {
                 // without a belt entry.
                 if let falseFriend = question.falseFriendEs, !falseFriend.isEmpty {
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
+                        // v1.9.0 polish (Lucía). `exclamationmark.triangle.fill`
+                        // read as an error/warning. The belt entry is a
+                        // pedagogical tip ("ojo aquí"), not a failure, so we
+                        // use `lightbulb.fill`. Warning tint is preserved
+                        // so the chip stays visually distinct from the rest
+                        // of the feedback card.
+                        Image(systemName: "lightbulb.fill")
                             .foregroundStyle(Semantic.warning)
                             .accessibilityHidden(true)
                         Text(falseFriend)
