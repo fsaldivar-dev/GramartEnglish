@@ -59,7 +59,9 @@ struct PlacementQuestionView: View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
                 Text(highlightedSentence)
-                    .font(.system(size: 24, weight: .regular, design: .rounded))
+                    // F008 Item 2 (v1.9.0). Token sweep — 24pt literal.
+                    .font(.system(.title3, design: .rounded))
+                    .minimumScaleFactor(0.7)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 540)
                 SpeakButton(text: question.sentence ?? "", shortcut: "s", size: 18)
@@ -77,7 +79,10 @@ struct PlacementQuestionView: View {
     private var bareWordCard: some View {
         HStack(spacing: 8) {
             Text(question.word)
-                .font(.system(size: 48, weight: .semibold, design: .rounded))
+                // F008 Item 2 (v1.9.0). Token sweep — 48pt literal.
+                .font(.system(.largeTitle, design: .rounded))
+                .fontWeight(.bold)
+                .minimumScaleFactor(0.5)
                 .accessibilityAddTraits(.isHeader)
             SpeakButton(text: question.word, shortcut: "s", size: 20)
         }
@@ -95,7 +100,10 @@ struct PlacementQuestionView: View {
             guard start >= 0, start + length <= chars.count else { return attr }
             let attrStart = chars.index(chars.startIndex, offsetBy: start)
             let attrEnd = chars.index(attrStart, offsetBy: length)
-            attr[attrStart..<attrEnd].font = .system(size: 24, weight: .bold, design: .rounded)
+            // F008 Item 2 (v1.9.0). Token sweep — was `.system(size: 24, …)`;
+            // promoted to a Dynamic-Type-relative font so the highlighted
+            // target word scales with the surrounding sentence body.
+            attr[attrStart..<attrEnd].font = .system(.title3, design: .rounded).weight(.bold)
             attr[attrStart..<attrEnd].foregroundColor = .accentColor
         }
         return attr

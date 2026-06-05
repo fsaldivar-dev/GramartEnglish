@@ -45,7 +45,10 @@ struct AnswerFeedbackView: View {
 
                 HStack(spacing: 8) {
                     Text(question.word)
-                        .font(.system(size: 36, weight: .semibold, design: .rounded))
+                        // F008 Item 2 (v1.9.0). Token sweep — 36pt literal.
+                        .font(.system(.title, design: .rounded))
+                        .fontWeight(.semibold)
+                        .minimumScaleFactor(0.6)
                     SpeakButton(text: question.word, shortcut: "s", size: 18, rate: .normal)
                     // F007 (v1.8.0). Slow-rate companion for A1 self-correction.
                     SpeakButton(text: question.word, shortcut: "d", size: 18, rate: .slow)
@@ -89,7 +92,8 @@ struct AnswerFeedbackView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(echo)
-                            .font(.system(size: 22, design: .rounded))
+                            // F008 Item 2 (v1.9.0). Token sweep — 22pt literal.
+                            .font(.system(.title3, design: .rounded))
                             .foregroundStyle(.secondary)
                             .strikethrough()
                             .accessibilityLabel("Lo que escribiste: \(echo), tachado")
@@ -126,6 +130,39 @@ struct AnswerFeedbackView: View {
                 .padding(.horizontal, 14)
                 .frame(maxWidth: 540, alignment: .leading)
                 .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+
+                // F008 Item 3 (v1.9.0). False-friend warning chip — Lucía's
+                // L1-transfer belt. Surfaced below the canonical reveal so
+                // it lands AFTER the learner has committed an answer,
+                // disambiguating the trap at the moment of recall instead
+                // of as a pre-question hint. Absent for the ~98% of words
+                // without a belt entry.
+                if let falseFriend = question.falseFriendEs, !falseFriend.isEmpty {
+                    HStack(alignment: .top, spacing: 8) {
+                        // v1.9.0 polish (Lucía). `exclamationmark.triangle.fill`
+                        // read as an error/warning. The belt entry is a
+                        // pedagogical tip ("ojo aquí"), not a failure, so we
+                        // use `lightbulb.fill`. Warning tint is preserved
+                        // so the chip stays visually distinct from the rest
+                        // of the feedback card.
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(Semantic.warning)
+                            .accessibilityHidden(true)
+                        Text(falseFriend)
+                            .font(.callout)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, Spacing.xs)
+                    .padding(.horizontal, Spacing.sm)
+                    .frame(maxWidth: 540, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: Radius.sm)
+                            .fill(Semantic.warning.opacity(Tint.soft))
+                    )
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Aviso de falso amigo: \(falseFriend)")
+                }
 
                 Button(action: onShowExamples) {
                     Label("Ver cómo se usa esta palabra", systemImage: "sparkles")

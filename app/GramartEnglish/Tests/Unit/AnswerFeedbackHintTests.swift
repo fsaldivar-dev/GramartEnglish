@@ -29,10 +29,13 @@ final class AnswerFeedbackHintTests: XCTestCase {
             correctIndex: 0,
             correctOption: "went",
             canonicalDefinition: "past tense of go",
-            feedbackHint: "Casi — \"goed\" es el error típico, pero \"go\" es irregular. La forma correcta es **went**."
+            feedbackHint: "Casi — \"goed\" es el error típico **de hispanohablantes**, pero \"go\" es irregular. La forma correcta es **went**."
         )
         XCTAssertNotNil(outcome.feedbackHint)
         XCTAssertTrue(outcome.feedbackHint!.contains("irregular"))
+        // F008 Item 3 (v1.9.0). Lucía's polish — the hint must name the
+        // L1 transfer pattern explicitly.
+        XCTAssertTrue(outcome.feedbackHint!.contains("hispanohablantes"))
     }
 
     func testOutcomeDefaultsToNilFeedbackHint() {

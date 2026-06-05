@@ -24,7 +24,8 @@ struct TypedAnswerInputView: View {
         VStack(spacing: 14) {
             TextField("escribe la palabra…", text: $text)
                 .textFieldStyle(.roundedBorder)
-                .font(.system(size: 22, design: .monospaced))
+                // F008 Item 2 (v1.9.0). Token sweep — 22pt literal.
+                .font(.system(.title3, design: .monospaced))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
                 .onSubmit(submit)
@@ -38,7 +39,6 @@ struct TypedAnswerInputView: View {
                     isFocused = true
                 }.onTapGesture {
                     isFocused = true
-                    print("chante text")
                 }
 
             if hintChars > 0 {

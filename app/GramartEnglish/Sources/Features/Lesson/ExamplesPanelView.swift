@@ -50,7 +50,8 @@ struct ExamplesPanelView: View {
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
-                        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+                        // F008 Item 2 (v1.9.0). Token sweep — 8pt radius → Radius.sm.
+                        .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.sm))
                     }
                 }
                 attribution(fallback: fallback)

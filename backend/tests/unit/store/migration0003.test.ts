@@ -10,10 +10,14 @@ interface PragmaInfo {
 }
 
 describe('migration 0003_lesson_modes', () => {
-  it('bumps user_version to 3', () => {
+  it('bumps user_version to the latest applied migration', () => {
+    // F008 (v1.9.0): migration 0004 (falseFriendEs) bumps user_version
+    // to 4 so the runner doesn't replay the ALTER TABLE on re-start.
+    // The user-facing schemaVersion contract stays at 3 — that lives in
+    // version.json, not in the PRAGMA.
     const db = new Database(':memory:');
     runMigrations(db);
-    expect(getCurrentVersion(db)).toBe(3);
+    expect(getCurrentVersion(db)).toBe(4);
     db.close();
   });
 

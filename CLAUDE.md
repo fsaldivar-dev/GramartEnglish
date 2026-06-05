@@ -2,11 +2,12 @@
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
 
-- Active feature: `007-persistence-prosody-tokens` (v1.8.0 shipped — lesson-state persistence, slow-rate TTS, design tokens, distractor hygiene)
-- Plan: [specs/007-persistence-prosody-tokens/plan.md](specs/007-persistence-prosody-tokens/plan.md)
-- Spec: [specs/007-persistence-prosody-tokens/spec.md](specs/007-persistence-prosody-tokens/spec.md)
-- Data model delta: [specs/007-persistence-prosody-tokens/data-model.md](specs/007-persistence-prosody-tokens/data-model.md)
-- Research: [specs/007-persistence-prosody-tokens/research.md](specs/007-persistence-prosody-tokens/research.md)
+- Active feature: `008-mute-tokens-falsefriends` (v1.9.0 — mute toggle in lesson chrome, full token sweep, false-friend belt, distinct summary buttons)
+- Plan: [specs/008-mute-tokens-falsefriends/plan.md](specs/008-mute-tokens-falsefriends/plan.md)
+- Spec: [specs/008-mute-tokens-falsefriends/spec.md](specs/008-mute-tokens-falsefriends/spec.md)
+- Data model delta: [specs/008-mute-tokens-falsefriends/data-model.md](specs/008-mute-tokens-falsefriends/data-model.md)
+- Research: [specs/008-mute-tokens-falsefriends/research.md](specs/008-mute-tokens-falsefriends/research.md)
+- F007 (shipped, persistence + tokens + prosody): [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/)
 - Evaluator personas: [specs/team-personas.md](specs/team-personas.md)
 - F006 (shipped, verb intro card): [specs/006-verb-intro-card/](specs/006-verb-intro-card/)
 - F004 (shipped, conjugate_pick_form): [specs/004-verb-conjugation/](specs/004-verb-conjugation/)
@@ -16,5 +17,5 @@ shell commands, and other important information, read the current plan:
 - MVP foundation (still authoritative for unchanged areas): [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/)
 - Constitution: [.specify/memory/constitution.md](.specify/memory/constitution.md)
 
-**Mastery is per-(word, mode)** as of Feature 002. A word can be mastered in `read_pick_meaning` and still be "to-review" in `listen_pick_word`, `write_type_word`, or `conjugate_pick_form`. F003 added write modes (Spanish prompt → English answer); F005 made placement adaptive; F004 v1.6.0 added `conjugate_pick_form` (Spanish verb infinitive → English past form, simple_past only, A2+B1, 60 verbs). F006 v1.7.0 added a per-Mac, per-verb "Conoce el verbo" pre-conjugation micro-card. F007 v1.8.0 added: lesson-state persistence to `~/Library/Application Support/GramartEnglish/lesson-state.json` (survives Cmd+Q), `SpeechRate.normal/.slow` prosody buttons, `DesignTokens.swift` (Spacing/Radius/Tint/Semantic), and a distractor-hygiene fix that removes `goed`/`runed` from `conjugate_pick_form` options and surfaces them as an `AnswerResult.feedbackHint` instead. `schemaVersion` stays at 3.
+**Mastery is per-(word, mode)** as of Feature 002. A word can be mastered in `read_pick_meaning` and still be "to-review" in `listen_pick_word`, `write_type_word`, or `conjugate_pick_form`. F003 added write modes (Spanish prompt → English answer); F005 made placement adaptive; F004 v1.6.0 added `conjugate_pick_form` (Spanish verb infinitive → English past form, simple_past only, A2+B1, 60 verbs). F006 v1.7.0 added a per-Mac, per-verb "Conoce el verbo" pre-conjugation micro-card. F007 v1.8.0 added: lesson-state persistence to `~/Library/Application Support/GramartEnglish/lesson-state.json` (survives Cmd+Q), `SpeechRate.normal/.slow` prosody buttons, `DesignTokens.swift` (Spacing/Radius/Tint/Semantic), and a distractor-hygiene fix that removes `goed`/`runed` from `conjugate_pick_form` options and surfaces them as an `AnswerResult.feedbackHint` instead. F008 v1.9.0 added: a mute toggle in every lesson chrome (`⌘M` shortcut, bound to `SpeechService.shared.isMuted`; bare `M` was patched out post-QA to avoid collision with typed-answer input), full propagation of design tokens through `Sources/Features/` (lint test in `DesignTokenContractTests`), an optional Spanish false-friend warning (`falseFriendEs?: String`) surfaced in `AnswerFeedbackView` for 10 belt words across A2 + B1 (pure Spanish copy, rendered as a `lightbulb.fill` chip), and distinct `onStartAnother`/`onBackHome` callbacks on `LessonSummaryView` so "Empezar otra" commits straight to a new lesson. `schemaVersion` stays at 3.
 <!-- SPECKIT END -->

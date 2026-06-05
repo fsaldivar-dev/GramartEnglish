@@ -42,31 +42,38 @@ final class SpeechCallSiteAuditTests: XCTestCase {
     private let userTapSites: [CallSite] = [
         // The big circular speaker hero in listening modes — the user's only
         // way to replay the word. Marisol's bug.
+        // F008 (v1.9.0): shifted to 116 after Item 2's font literal expansion
+        // and the v1.9.0 patch (Marisol layout fix + Polish A speaker dim).
         .init(relativePath: "Features/Lesson/ListeningLessonView.swift",
-              line: 111, userInitiated: true),
+              line: 116, userInitiated: true),
         // Shared 🔊 button used inline next to revealed words.
+        // v1.9.0 patch: shifted from 45 → 51 by the muted-tint trust signal.
         .init(relativePath: "Shared/Speech/SpeakButton.swift",
-              line: 45, userInitiated: true),
+              line: 51, userInitiated: true),
     ]
 
     /// Auto-fire call-sites — `.onAppear`, `.onChange`, helper methods that
     /// run without an explicit user gesture. MUST NOT pass the flag so the
     /// mute toggle is honored.
+    /// F008 (v1.9.0): line numbers shifted by Item 1 (mute toggle inserted
+    /// in lesson chrome HStacks) and Item 2 (font literals expanded into
+    /// `.font + .fontWeight + .minimumScaleFactor` blocks).
     private let autoFireSites: [CallSite] = [
+        // v1.9.0 patch: lines shifted by 1 after the right-align Spacer fix.
         .init(relativePath: "Features/Lesson/ListeningLessonView.swift",
-              line: 51, userInitiated: false),
+              line: 56, userInitiated: false),
         .init(relativePath: "Features/Lesson/ListeningLessonView.swift",
-              line: 52, userInitiated: false),
+              line: 57, userInitiated: false),
         .init(relativePath: "Features/Lesson/LessonQuestionView.swift",
-              line: 35, userInitiated: false),
+              line: 47, userInitiated: false),
         .init(relativePath: "Features/Lesson/LessonQuestionView.swift",
-              line: 36, userInitiated: false),
+              line: 48, userInitiated: false),
         .init(relativePath: "Features/Lesson/AnswerFeedbackView.swift",
-              line: 60, userInitiated: false),
+              line: 63, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",
-              line: 107, userInitiated: false),
+              line: 115, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",
-              line: 109, userInitiated: false),
+              line: 117, userInitiated: false),
     ]
 
     /// Roots up the directory tree from this test file to find the package

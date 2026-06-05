@@ -8,7 +8,10 @@ struct WelcomeView: View {
         VStack(spacing: 24) {
             Spacer()
             Text("GramartEnglish")
-                .font(.system(size: 40, weight: .semibold, design: .rounded))
+                // F008 Item 2 (v1.9.0). Token sweep — 40pt literal.
+                .font(.system(.largeTitle, design: .rounded))
+                .fontWeight(.bold)
+                .minimumScaleFactor(0.5)
                 .accessibilityAddTraits(.isHeader)
             Text("Aprende vocabulario en inglés a tu nivel")
                 .font(.title3)

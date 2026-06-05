@@ -12,7 +12,8 @@ struct FallbackBannerView: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        // F008 Item 2 (v1.9.0). Token sweep — 8pt radius → Radius.sm.
+        .background(Semantic.warning.opacity(Tint.soft), in: RoundedRectangle(cornerRadius: Radius.sm))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Ejemplos con IA no disponibles. Mostrando ejemplo curado.")
     }

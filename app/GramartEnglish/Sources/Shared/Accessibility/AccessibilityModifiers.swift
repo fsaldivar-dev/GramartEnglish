@@ -7,7 +7,8 @@ public struct FocusRingModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content.overlay(
-            RoundedRectangle(cornerRadius: 8)
+            // F008 Item 2 (v1.9.0). Token sweep — 8pt radius → Radius.sm.
+            RoundedRectangle(cornerRadius: Radius.sm)
                 .strokeBorder(
                     Color.accentColor.opacity(isFocused ? (contrast == .increased ? 1.0 : 0.7) : 0),
                     lineWidth: isFocused ? 3 : 0

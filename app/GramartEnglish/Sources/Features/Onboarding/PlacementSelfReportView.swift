@@ -17,7 +17,10 @@ struct PlacementSelfReportView: View {
                     .font(.headline)
                     .foregroundStyle(.secondary)
                 Text("¿Has estudiado inglés antes?")
-                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    // F008 Item 2 (v1.9.0). Token sweep — 34pt literal.
+                    .font(.system(.title, design: .rounded))
+                    .fontWeight(.semibold)
+                    .minimumScaleFactor(0.6)
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
                 Text("Nos ayuda a calibrar el test. Puedes saltarlo.")

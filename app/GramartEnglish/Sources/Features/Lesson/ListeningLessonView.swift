@@ -35,13 +35,18 @@ struct ListeningLessonView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
-                HStack {
+                HStack(spacing: Spacing.sm) {
+                    // F008 Item 1 (v1.9.0). Mute toggle — extra-valuable in
+                    // listening modes where auto-fire TTS is the primary
+                    // stimulus. ⌘M shortcut, persists across launches.
+                    // v1.9.0 patch (Marisol): leading Spacer right-aligns.
+                    Spacer()
+                    MuteToggleButton()
                     Button(action: onExit) {
                         Image(systemName: "xmark.circle").imageScale(.large)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Salir de la lección")
-                    Spacer()
                 }
 
                 ProgressHeader(current: progress.current, total: progress.total)
@@ -112,7 +117,14 @@ struct ListeningLessonView: View {
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: "speaker.wave.3.fill")
-                    .font(.system(size: 64, weight: .semibold))
+                    // F008 Item 2 (v1.9.0). Token sweep — hardcoded 64pt
+                    // replaced with a Dynamic-Type-relative font; the
+                    // `.largeTitle` base + `minimumScaleFactor(0.5)`
+                    // mirrors the LessonSummaryView/PlacementResultView
+                    // hero pattern Mariana established in v1.8.0.
+                    .font(.system(.largeTitle, design: .rounded))
+                    .fontWeight(.bold)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(.tint)
                     .padding(28)
                     .frame(width: 160, height: 160)
