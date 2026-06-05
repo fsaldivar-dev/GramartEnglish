@@ -46,7 +46,9 @@ struct AnswerFeedbackView: View {
                 HStack(spacing: 8) {
                     Text(question.word)
                         .font(.system(size: 36, weight: .semibold, design: .rounded))
-                    SpeakButton(text: question.word, shortcut: "s", size: 18)
+                    SpeakButton(text: question.word, shortcut: "s", size: 18, rate: .normal)
+                    // F007 (v1.8.0). Slow-rate companion for A1 self-correction.
+                    SpeakButton(text: question.word, shortcut: "d", size: 18, rate: .slow)
                 }
                 .onAppear {
                     // FR-008 + FR-012 — re-speak the canonical on reveal for any
@@ -58,6 +60,24 @@ struct AnswerFeedbackView: View {
                             SpeechService.shared.speakEnglish(question.word)
                         }
                     }
+                }
+
+                // F007 (v1.8.0). Over-regularization teaching line. Shown
+                // BEFORE the typed-echo block so the diagnosis lands first;
+                // the strikethrough echo then concretises which character
+                // sequence to unlearn.
+                if let hint = outcome.feedbackHint, !hint.isEmpty {
+                    Text(.init(hint))
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: 540, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: Radius.sm)
+                                .fill(Semantic.warning.opacity(Tint.soft))
+                        )
+                        .accessibilityLabel(hint)
                 }
 
                 if mode.isTyped, let echo = typedAnswerEcho, !echo.isEmpty,
@@ -182,11 +202,11 @@ private struct AnswerRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if isCorrect {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Semantic.success)
                     .accessibilityLabel("Correct answer")
             } else if isChosen {
                 Image(systemName: "xmark")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Semantic.error)
                     .accessibilityLabel("Your answer")
             }
         }

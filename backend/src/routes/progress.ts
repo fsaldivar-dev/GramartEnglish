@@ -7,9 +7,16 @@ import { QuestionRepository } from '../store/questionRepository.js';
 import { WordRepository } from '../store/wordRepository.js';
 import { SHIPPED_MODES, type LessonMode } from '../domain/schemas.js';
 import { recommendMode } from '../lessons/modeRecommender.js';
+import { LessonService } from '../lessons/lessonService.js';
+import { loadVerbCorpus } from '../store/verbRepository.js';
 
 export interface ProgressRouteDeps {
   db: Database.Database;
+  /** v1.8.0+ (F007 patch). Optional path to `data/cefr/` so the GET
+   *  /v1/lessons/:lessonId endpoint can rehydrate `conjugate_pick_form`
+   *  lessons with verb-corpus-derived metadata (prompt, exampleEs/En). When
+   *  omitted, conjugation lessons still resume but with the minimal MCQ shape. */
+  corpusDir?: string;
 }
 
 export async function registerProgressRoutes(app: FastifyInstance, deps: ProgressRouteDeps): Promise<void> {
@@ -18,6 +25,19 @@ export async function registerProgressRoutes(app: FastifyInstance, deps: Progres
   const masteryRepo = new MasteryRepository(deps.db);
   const questionRepo = new QuestionRepository(deps.db);
   const wordRepo = new WordRepository(deps.db);
+  // F007 patch (v1.8.0). Reuse the lesson service so resume returns the same
+  // ClientLessonQuestion shape as POST /v1/lessons (prompt/maskedWord/verbBase/
+  // exampleEs/exampleEn populated per-mode). Previously the route built a
+  // bare {id, word, options, position} which made resuming write/conjugation
+  // lessons render blanks where the prompt should be.
+  const verbRepo = deps.corpusDir ? loadVerbCorpus(deps.corpusDir, wordRepo) : undefined;
+  const lessonService = new LessonService({
+    lessons: lessonRepo,
+    questions: questionRepo,
+    words: wordRepo,
+    mastery: masteryRepo,
+    ...(verbRepo ? { verbs: verbRepo } : {}),
+  });
 
   app.get('/v1/progress', async () => {
     const user = userRepo.ensureSingleton();
@@ -80,39 +100,37 @@ export async function registerProgressRoutes(app: FastifyInstance, deps: Progres
 
   app.get('/v1/lessons/:lessonId', async (req, reply) => {
     const lessonId = (req.params as { lessonId: string }).lessonId;
-    const lesson = lessonRepo.byId(lessonId);
-    if (!lesson) return reply.code(404).send({ code: 'lesson_not_found', message: 'unknown lesson' });
-    const questions = questionRepo.byLessonId(lessonId);
-    if (lesson.state === 'completed') {
-      const missed = questions
-        .filter((q) => q.correct === false)
-        .map((q) => {
-          const w = wordRepo.byId(q.wordId);
-          return w ? { word: w.base, canonicalDefinition: w.canonicalDefinition } : null;
-        })
-        .filter((m): m is { word: string; canonicalDefinition: string } => m !== null);
+    const result = lessonService.describeLesson({ lessonId });
+    if (!result) return reply.code(404).send({ code: 'lesson_not_found', message: 'unknown lesson' });
+    if (result.kind === 'completed') {
       return {
         state: 'completed',
-        lessonId: lesson.id,
-        level: lesson.level,
-        score: lesson.score ?? questions.filter((q) => q.correct === true).length,
-        total: questions.length,
-        missedWords: missed,
+        lessonId: result.lesson.id,
+        level: result.lesson.level,
+        mode: result.lesson.mode,
+        score: result.summary.score,
+        total: result.summary.total,
+        missedWords: result.summary.missedWords.map((m) => ({
+          word: m.word,
+          canonicalDefinition: m.canonicalDefinition,
+        })),
       };
     }
-    const remaining = questions
-      .filter((q) => q.selectedIndex === null)
-      .map((q) => {
-        const w = wordRepo.byId(q.wordId);
-        return { id: q.id, word: w?.base ?? '', options: q.options, position: q.position };
-      });
+    // F007 patch (v1.8.0). Mirror the `StartLessonResponse` shape so the
+    // client can decode both /lessons (POST) and /lessons/:id (GET) into the
+    // same type. We additionally surface state/answeredCount/totalCount so
+    // existing callers (Home banner, tests) keep working.
     return {
       state: 'in_progress',
-      lessonId: lesson.id,
-      level: lesson.level,
-      answeredCount: questions.length - remaining.length,
-      totalCount: questions.length,
-      remaining,
+      lessonId: result.lesson.id,
+      level: result.lesson.level,
+      mode: result.lesson.mode,
+      answeredCount: result.answeredCount,
+      totalCount: result.totalCount,
+      questions: result.remaining,
+      // Back-compat alias for the pre-patch contract test that asserted
+      // `remaining`. Keep the duplicate until we ship a major.
+      remaining: result.remaining,
     };
   });
 }

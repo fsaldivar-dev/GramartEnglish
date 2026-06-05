@@ -12,7 +12,7 @@ public struct BackendClient: Sendable {
     /// Sent on every request as `X-Client-Version`. The backend uses this to
     /// branch placement /start between the v1.3 (legacy 24-question) and the
     /// v1.4+ (adaptive single-question) shapes.
-    public static let clientVersion = "1.7.0"
+    public static let clientVersion = "1.8.0"
 
     public let baseURL: URL
     public let session: URLSession
@@ -323,6 +323,29 @@ public struct BackendClient: Sendable {
         )
     }
 
+    /// F007 patch (v1.8.0). Resume an in-flight lesson by id. The backend
+    /// returns the remaining (unanswered) questions plus the persisted mode
+    /// in the same shape as `startLesson`, so the caller can drop the result
+    /// into the existing answering flow without branching.
+    ///
+    /// Throws `.http(404)` if the lesson is unknown or already completed —
+    /// callers should clear the local snapshot in that case and fall back
+    /// to a fresh `startLesson`.
+    public struct ResumeLessonResponse: Codable, Sendable, Equatable {
+        public let lessonId: String
+        public let mode: String?
+        public let level: String?
+        public let questions: [LessonQuestionDTO]
+        /// Number of questions already answered server-side. The client uses
+        /// this to keep the progress strip in sync on resume.
+        public let answeredCount: Int?
+        public let totalCount: Int?
+    }
+
+    public func resumeLesson(lessonId: String) async throws -> ResumeLessonResponse {
+        try await get("/lessons/\(lessonId)", as: ResumeLessonResponse.self)
+    }
+
     public struct AnswerLessonRequest: Codable, Sendable {
         public let questionId: String
         public let optionIndex: Int?
@@ -357,6 +380,26 @@ public struct BackendClient: Sendable {
         public let correctOption: String
         public let canonicalDefinition: String
         public let typedAnswerEcho: String?
+        /// F007 (v1.8.0). Server-supplied teaching line shown post-answer.
+        /// Populated when the learner committed to an over-regularized form
+        /// of an irregular verb (e.g. typed `goed`). Absent otherwise.
+        public let feedbackHint: String?
+
+        public init(
+            outcome: Outcome,
+            correctIndex: Int,
+            correctOption: String,
+            canonicalDefinition: String,
+            typedAnswerEcho: String? = nil,
+            feedbackHint: String? = nil
+        ) {
+            self.outcome = outcome
+            self.correctIndex = correctIndex
+            self.correctOption = correctOption
+            self.canonicalDefinition = canonicalDefinition
+            self.typedAnswerEcho = typedAnswerEcho
+            self.feedbackHint = feedbackHint
+        }
     }
 
     /// Option-picking modes (read_pick_meaning, listen_pick_word, listen_pick_meaning).

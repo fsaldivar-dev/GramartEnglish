@@ -61,13 +61,47 @@ describe('buildVerbQuestion', () => {
     expect(q.targetTense).toBe('simple_past');
   });
 
-  it('includes the over-regularized distractor for irregular verbs', () => {
+  // F007 (v1.8.0): the over-regularized form is NO LONGER a visible
+  // distractor — see verbConjugationBuilder doc header. The recipe now
+  // ships base + past_participle + 1 random-other-past-at-level as the
+  // three distractors alongside the correct simple_past.
+  it('builds the v1.8.0 recipe: base + past_participle + 1 random valid past', () => {
     const go = verbs.lookupByBase('go')!;
     const q = buildVerbQuestion(go, verbs, { level: 'A2', seed: 3 });
-    expect(q.options).toContain('goed'); // over_regularized
     expect(q.options).toContain('go');   // base_form
     expect(q.options).toContain('gone'); // past_participle
     expect(q.options).toContain('went'); // correct simple_past
+    // The 4th option must be SOME other A2 verb's simple_past.
+    const filler = q.options.filter((o) => o !== 'go' && o !== 'gone' && o !== 'went');
+    expect(filler).toHaveLength(1);
+    const isOtherPast = verbs
+      .atLevel('A2')
+      .some((v) => v.simplePast === filler[0] && v.base !== 'go');
+    expect(isOtherPast, `${filler[0]} must be some other A2 verb's simple_past`).toBe(true);
+  });
+
+  // F007 (v1.8.0) regression guard. We saw a real injury pattern where
+  // showing `goed`/`runed`/`eated` as MCQ options taught the L1 error by
+  // exposing the wrong spelling on every reading. The over-regularized
+  // form must NEVER appear as a visible option for an irregular verb.
+  it('NEVER surfaces the over-regularized form as an MCQ option (irregular verbs)', () => {
+    const irregulars = ['go', 'eat', 'see', 'run', 'come', 'know', 'take', 'give'];
+    for (const base of irregulars) {
+      const verb = verbs.lookupByBase(base);
+      if (!verb) continue; // not all bases present at every level
+      for (let seed = 0; seed < 20; seed += 1) {
+        const q = buildVerbQuestion(verb, verbs, { level: verb.level, seed });
+        const over = `${verb.base}ed`;
+        // The over-regularized form being equal to the canonical past
+        // happens only for regular verbs; for those it's fine because
+        // it's the right answer. For irregular verbs it must be absent.
+        if (over === verb.simplePast) continue;
+        expect(
+          q.options.includes(over),
+          `seed=${seed} verb=${verb.base}: options ${JSON.stringify(q.options)} must NOT contain over-regularized "${over}"`,
+        ).toBe(false);
+      }
+    }
   });
 
   it('falls back to other-verb past forms when distractors collide with the answer (regular verbs)', () => {
