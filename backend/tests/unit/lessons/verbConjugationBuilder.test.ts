@@ -9,6 +9,7 @@ import { loadVerbCorpus, type VerbRepository } from '../../../src/store/verbRepo
 import {
   buildVerbQuestion,
   overRegularize,
+  isAmbiguousForPickForm,
 } from '../../../src/lessons/verbConjugationBuilder.js';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
@@ -27,7 +28,9 @@ describe('overRegularize', () => {
   it('appends "ed" to every base — no spelling-rule cleanups', () => {
     expect(overRegularize('go')).toBe('goed');
     expect(overRegularize('eat')).toBe('eated');
-    // No consonant doubling — the L2 mistake doesn't apply that rule either.
+    // v1.6.0 patch (Polish B): no consonant doubling — comment used to say
+    // "runned" but code produces "runed". Locked: A2 learners haven't seen
+    // the CVC doubling rule, so "runed" is the believable wrong form.
     expect(overRegularize('run')).toBe('runed');
     // Regular verbs collide deliberately; collision fallback handles it.
     expect(overRegularize('travel')).toBe('traveled');
@@ -104,5 +107,66 @@ describe('verbs corpus invariants', () => {
   it('every verb resolves to a vocabulary_words row (wordId > 0)', () => {
     for (const v of verbs.atLevel('A2')) expect(v.wordId).toBeGreaterThan(0);
     for (const v of verbs.atLevel('B1')) expect(v.wordId).toBeGreaterThan(0);
+  });
+
+  // v1.6.0 patch (Blocker 2): every verb in the production corpus must
+  // ship a Spanish example sentence with a `___` slot and an English
+  // translation. The slot is what disambiguates preterite/imperfect.
+  it('every verb provides example_es with the `___` slot and example_en', () => {
+    for (const level of ['A2', 'B1'] as const) {
+      for (const v of verbs.atLevel(level)) {
+        expect(v.exampleEs, `${v.base} missing exampleEs`).toBeTruthy();
+        expect(v.exampleEs).toContain('___');
+        expect(v.exampleEn, `${v.base} missing exampleEn`).toBeTruthy();
+        expect(v.exampleEn.length).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+// v1.6.0 patch (Blocker 1): English verbs where the base spells identically
+// to the simple past (read/read, cut/cut, put/put, hit/hit, let/let,
+// set/set, cost/cost, hurt/hurt) make `conjugate_pick_form` unanswerable
+// as MCQ — the correct option and the "base form" distractor are the same
+// string. They must be excluded from selection.
+describe('isAmbiguousForPickForm', () => {
+  it('flags verbs whose base equals simple_past (case-insensitive)', () => {
+    expect(isAmbiguousForPickForm({ base: 'read', simplePast: 'read' })).toBe(true);
+    expect(isAmbiguousForPickForm({ base: 'cut', simplePast: 'cut' })).toBe(true);
+    expect(isAmbiguousForPickForm({ base: 'put', simplePast: 'put' })).toBe(true);
+    expect(isAmbiguousForPickForm({ base: 'Hit', simplePast: 'hit' })).toBe(true);
+  });
+
+  it('does NOT flag verbs where the past differs from the base', () => {
+    expect(isAmbiguousForPickForm({ base: 'go', simplePast: 'went' })).toBe(false);
+    expect(isAmbiguousForPickForm({ base: 'eat', simplePast: 'ate' })).toBe(false);
+    expect(isAmbiguousForPickForm({ base: 'travel', simplePast: 'traveled' })).toBe(false);
+  });
+
+  it('excludes verbs whose base equals simple_past from conjugate_pick_form (production corpus)', () => {
+    // The production corpus must not ship any base==simple_past verb (we
+    // deleted verb_read in v1.6.0 patch; future additions are guarded by
+    // this test).
+    for (const v of verbs.atLevel('A2')) {
+      expect(isAmbiguousForPickForm(v), `${v.base}: base spells identically to simple_past`).toBe(false);
+    }
+    for (const v of verbs.atLevel('B1')) {
+      expect(isAmbiguousForPickForm(v), `${v.base}: base spells identically to simple_past`).toBe(false);
+    }
+  });
+});
+
+// v1.6.0 patch (Blocker 2): the builder must surface example_es and
+// example_en on the BuiltConjugationQuestion so the client can render
+// the disambiguating Spanish sentence beneath the prompt header.
+describe('buildVerbQuestion — example sentences', () => {
+  it('includes exampleEs with a `___` slot and exampleEn with the verb conjugated', () => {
+    const eat = verbs.lookupByBase('eat')!;
+    const q = buildVerbQuestion(eat, verbs, { level: 'A2', seed: 11 });
+    expect(q.exampleEs).toBeTruthy();
+    expect(q.exampleEs).toContain('___');
+    expect(q.exampleEn).toBeTruthy();
+    // The English example uses the simple past, not the base form.
+    expect(q.exampleEn.toLowerCase()).toContain('ate');
   });
 });
