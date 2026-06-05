@@ -17,10 +17,8 @@ on:
 permissions:
   contents: write  # needed to create the GitHub Release + upload assets
 
-# Opt every JavaScript-based action into Node 24 ahead of GitHub's 2026-06-16
-# deadline (#9). See ci.yml for context.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+# v1.5.2: action tags pinned to Node 24 native majors. See ci.yml header for
+# the full list. Removed v1.5.2: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env override.
 
 jobs:
   build-app:
@@ -29,16 +27,16 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # tag detection needs full history
 
       - name: Select Xcode 15.4
         run: sudo xcode-select -s "$DEVELOPER_DIR"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with: { version: 9 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -72,7 +70,7 @@ jobs:
           echo "checksum=dist/${ASSET}.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact (always — even on push-to-main without tag)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: GramartEnglish-${{ steps.ver.outputs.tag }}
           path: |
@@ -83,7 +81,7 @@ jobs:
 
       - name: Publish GitHub Release (only on tag push or manual dispatch with tag)
         if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: GramartEnglish ${{ steps.ver.outputs.tag }}

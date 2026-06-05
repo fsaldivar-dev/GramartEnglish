@@ -127,7 +127,34 @@ struct WritingLessonView: View {
     /// UI is es-MX, and the Spanish VoiceOver synthesizer would otherwise
     /// pronounce the English token "blank" awkwardly for hispanohablantes
     /// (Principle VII). Pinned by `WriteFillGapsViewTests`.
+    ///
+    /// v1.5.2 polish (Marisol): for very short masks (length ≤ 4) with the
+    /// shape "one visible letter at position 0 + only gaps after",
+    /// emit a natural-language form ("g, falta una letra", "e__, faltan dos
+    /// letras") instead of the curt "g espacio" / "e espacio espacio" rhythm.
+    /// Longer masks (and odd shapes like multiple visible letters) keep the
+    /// original ` espacio ` form, which scans fine for words like `weather`.
     static func fillGapsAccessibilityLabel(for masked: String) -> String {
+        // Short-mask natural-language path: exactly one visible letter at
+        // position 0, all remaining chars are gaps, total length ≤ 4.
+        if masked.count >= 2, masked.count <= 4 {
+            let chars = Array(masked)
+            let head = chars[0]
+            let rest = chars.dropFirst()
+            if head != "_", rest.allSatisfy({ $0 == "_" }) {
+                let gapWord: String
+                switch rest.count {
+                case 1: gapWord = "falta una letra"
+                case 2: gapWord = "faltan dos letras"
+                case 3: gapWord = "faltan tres letras"
+                default: gapWord = "" // unreachable given length bounds
+                }
+                if !gapWord.isEmpty {
+                    return "Completa la palabra: \(head), \(gapWord)"
+                }
+            }
+        }
+
         var spoken = ""
         for ch in masked {
             if ch == "_" {
