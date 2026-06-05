@@ -129,7 +129,8 @@ struct AnswerFeedbackView: View {
                 .padding(.vertical, 10)
                 .padding(.horizontal, 14)
                 .frame(maxWidth: 540, alignment: .leading)
-                .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+                // F010 (v1.11.0). Token sweep — 10pt literal rounds to Radius.md (12).
+                .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
 
                 // F008 Item 3 (v1.9.0). False-friend warning chip — Lucía's
                 // L1-transfer belt. Surfaced below the canonical reveal so
@@ -203,11 +204,15 @@ struct AnswerFeedbackView: View {
         }
     }
 
+    // F010 (v1.11.0). Mariana flag from v1.10 review — raw `.green`/`.red`/
+    // `.orange` literals don't get the WCAG-tuned light/dark hexes that ship
+    // through `Semantic.*`. Migrating preserves contrast on the dark
+    // appearance without changing the badge semantics.
     private var badgeColor: Color {
         switch outcome.kind {
-        case .correct: return .green
-        case .incorrect: return .red
-        case .skipped: return .orange
+        case .correct: return Semantic.success
+        case .incorrect: return Semantic.error
+        case .skipped: return Semantic.warning
         }
     }
 }
@@ -218,9 +223,11 @@ private struct AnswerRow: View {
     let isCorrect: Bool
     let isChosen: Bool
 
+    // F010 (v1.11.0). Same Semantic migration as `badgeColor` above —
+    // the row border was on the v1.10 audit list.
     private var borderColor: Color {
-        if isCorrect { return .green }
-        if isChosen { return .red }
+        if isCorrect { return Semantic.success }
+        if isChosen { return Semantic.error }
         return .clear
     }
 
@@ -233,7 +240,8 @@ private struct AnswerRow: View {
             Text(String(index + 1))
                 .font(.system(.body, design: .monospaced))
                 .frame(width: 28, height: 28)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                // F010 (v1.11.0). 6pt → Radius.sm (8); preserves chip visual rhythm.
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: Radius.sm))
             Text(text)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,9 +258,10 @@ private struct AnswerRow: View {
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-        .background(background, in: RoundedRectangle(cornerRadius: 10))
+        // F010 (v1.11.0). 10pt → Radius.md (12).
+        .background(background, in: RoundedRectangle(cornerRadius: Radius.md))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: Radius.md)
                 .strokeBorder(borderColor, lineWidth: 2)
         )
     }
