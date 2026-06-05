@@ -57,12 +57,13 @@ remains untouched. The view does not surface a hint affordance for
 ## Auto-promotion decision (server-side, opaque to client)
 
 For words with length ≤ 3, the masker returns `autoPromoted: true` and
-`lessonService` OMITS `maskedWord` from the response. The lesson row
-**stays at `mode = write_fill_gaps`** so mastery accumulates on the
-write_fill_gaps axis — this preserves FR-007's per-mode mastery promise.
-The client, seeing `maskedWord == nil` for a `write_fill_gaps` question,
-falls back to the same rendering it uses for `write_type_word`: Spanish
-prompt + typed input, no scaffold.
+`lessonService` emits a **first-letter anchor scaffold** as `maskedWord`
+(e.g. `eat` → `e__`, `go` → `g_`) — v1.5.1+. The lesson row **stays at
+`mode = write_fill_gaps`** so mastery accumulates on the write_fill_gaps
+axis — this preserves FR-007's per-mode mastery promise. The client
+renders the scaffold identically to the long-word case; no `nil` branch
+is needed in production (the defensive 1-letter case still omits the
+field but is not represented in the corpus).
 
 ## Tasks for this delta (mirrors locked scope)
 
