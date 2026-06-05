@@ -48,8 +48,14 @@ final class SpeechCallSiteAuditTests: XCTestCase {
               line: 116, userInitiated: true),
         // Shared 🔊 button used inline next to revealed words.
         // v1.9.0 patch: shifted from 45 → 51 by the muted-tint trust signal.
+        // F009 (v1.10.0): shifted to 65 by the symbolName/a11yLabel helpers
+        // that branch on `isMuted` for Priya's per-question mute indicator.
+        // F009 v1.10.0 blocker patch: shifted to 73 after promoting
+        // `SpeechService` to `ObservableObject` and adding the
+        // `@ObservedObject` property + its doc-comment at the top of
+        // the view so the icon flips reactively on ⌘M.
         .init(relativePath: "Shared/Speech/SpeakButton.swift",
-              line: 51, userInitiated: true),
+              line: 73, userInitiated: true),
     ]
 
     /// Auto-fire call-sites — `.onAppear`, `.onChange`, helper methods that

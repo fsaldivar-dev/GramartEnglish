@@ -7,27 +7,31 @@ import SwiftUI
 ///
 /// Bound to `SpeechService.shared.isMuted` (the same UserDefaults-backed
 /// flag toggled from Settings; v1.4.1 already wired this). Tapping toggles
-/// state, the `M` keyboard shortcut fires the same action, and the icon
+/// state, the `⌘M` keyboard shortcut fires the same action, and the icon
 /// + accessibility metadata reflect the current state so VoiceOver readers
 /// know which side they're on without trial-and-error.
 ///
-/// Why a Bindable wrapper instead of `@AppStorage`: `SpeechService.shared`
-/// is the single source of truth (audited by `SpeechCallSiteAuditTests`),
-/// and routing through it keeps the toggle from drifting from the auto-fire
-/// gate. We mirror the value into `@State` so SwiftUI redraws the icon on
-/// the same tick the persisted flag flips.
+/// F009 v1.10.0 blocker fix (Priya): `SpeechService` is now an
+/// `ObservableObject` with `@Published var isMuted`, so we observe it
+/// directly instead of mirroring into a local `@State`. The mirror was
+/// a workaround for the (now removed) UserDefaults-only computed property;
+/// dropping it keeps the chrome toggle and every visible `SpeakButton` in
+/// lockstep on the same SwiftUI update tick. Test-only injection is
+/// retained via `initialIsMuted` (seeds the shared service in init).
 struct MuteToggleButton: View {
-    @State private var isMuted: Bool
+    @ObservedObject private var speech = SpeechService.shared
 
     init(initialIsMuted: Bool? = nil) {
-        // Allow tests to inject the starting state; in production we always
-        // read the live value from SpeechService at construction time.
-        _isMuted = State(initialValue: initialIsMuted ?? SpeechService.shared.isMuted)
+        if let initialIsMuted {
+            // Test-only seam: align the shared service before the view
+            // observes it so unit tests can pin the initial render.
+            SpeechService.shared.isMuted = initialIsMuted
+        }
     }
 
     var body: some View {
         Button(action: toggle) {
-            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+            Image(systemName: speech.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                 .imageScale(.large)
         }
         .buttonStyle(.plain)
@@ -41,16 +45,13 @@ struct MuteToggleButton: View {
         .accessibilityLabel("Silenciar audio")
         // VoiceOver reads label + value, so "Silenciar audio: activado"
         // tells the user the toggle is currently on without trial-and-error.
-        .accessibilityValue(isMuted ? "activado" : "desactivado")
+        .accessibilityValue(speech.isMuted ? "activado" : "desactivado")
         .accessibilityHint("Presiona Cmd+M para alternar")
     }
 
     private func toggle() {
-        // Flip the persistent flag; mirror it into local @State so the icon
-        // updates this tick. We deliberately read back from SpeechService
-        // (not just `!isMuted`) so any future side-effects added to the
-        // setter (e.g. a coalescing debounce) stay authoritative.
-        SpeechService.shared.isMuted.toggle()
-        isMuted = SpeechService.shared.isMuted
+        // Direct mutation — `SpeechService.isMuted` is `@Published`, so the
+        // chrome icon and every observing `SpeakButton` redraw this tick.
+        speech.isMuted.toggle()
     }
 }

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// F007 (v1.8.0) — design tokens.
@@ -41,15 +42,79 @@ public enum Tint {
     public static let strong: Double = 0.28
 }
 
-/// Semantic palette. v1.8.0 falls back to the system primaries; v1.9 will
-/// swap each to a tuned `Color("SemanticSuccess")` etc. via asset catalog
-/// without touching call-sites.
+/// Semantic palette. F009 (v1.10.0) — the v1.8 TODO is paid off.
+///
+/// Each token ships both ways:
+///   1. **Asset catalog** — `Sources/Resources/Assets.xcassets` carries
+///      `SemanticSuccess`/`SemanticWarning`/`SemanticError` colorsets
+///      with `light` (default) and `dark` (`luminosity = dark`) variants.
+///      Tuned to ≥ 4.5:1 contrast on the macOS window background; see
+///      `SemanticColorsTests`. An Xcode-driven build compiles the
+///      catalog into `Assets.car` and `Color(_:bundle:)` resolves at
+///      render time.
+///   2. **Programmatic fallback** — when the build pipeline is `swift
+///      build` (CI test runs + the SPM-produced executable), SPM copies
+///      the `.xcassets` directory uncompiled and `Color(_:bundle:)`
+///      returns nil. We back the named token with a `Color` literal
+///      that auto-switches between the same light/dark hexes via
+///      `ColorScheme`, so the runtime app stays correct.
+///
+/// Both paths land on the same six sRGB hexes:
+///   success: #0E7C3A light / #4ADE80 dark
+///   warning: #B45309 light / #FBBF24 dark
+///   error:   #B91C1C light / #F87171 dark
+///
+/// Why `.module` and not `.main`: SPM places resources processed via
+/// `.process(...)` into the target's per-module bundle, not the app's
+/// main bundle. Reading from `.main` would silently fall back to the
+/// platform `nil` color (System red, in practice).
 public enum Semantic {
-    // TODO(v1.9): migrate to Color("SemanticSuccess") asset with
-    //             light/dark variants tuned for AA contrast on .background.
-    public static let success: Color = .green
-    // TODO(v1.9): migrate to Color("SemanticWarning") asset.
-    public static let warning: Color = .orange
-    // TODO(v1.9): migrate to Color("SemanticError") asset.
-    public static let error: Color = .red
+
+    /// Returns the asset-catalog color when the bundle resolves it;
+    /// otherwise the fallback closure (which can read `ColorScheme`).
+    private static func token(_ name: String, lightHex: UInt32, darkHex: UInt32) -> Color {
+        // Probe the bundle once at first use. NSColor exposes whether the
+        // lookup succeeded; if it did, we trust the catalog (Xcode build).
+        if NSColor(named: NSColor.Name(name), bundle: .module) != nil {
+            return Color(name, bundle: .module)
+        }
+        // SPM-build fallback: synthesise a Color that auto-swaps on
+        // ColorScheme. We use `Color(nsColor:)` with a dynamic NSColor
+        // so SwiftUI re-evaluates on appearance changes.
+        let dynamic = NSColor(name: nil, dynamicProvider: { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+            return Self.color(fromHex: isDark ? darkHex : lightHex)
+        })
+        return Color(nsColor: dynamic)
+    }
+
+    private static func color(fromHex hex: UInt32) -> NSColor {
+        let r = CGFloat((hex >> 16) & 0xFF) / 255.0
+        let g = CGFloat((hex >> 8) & 0xFF) / 255.0
+        let b = CGFloat(hex & 0xFF) / 255.0
+        return NSColor(srgbRed: r, green: g, blue: b, alpha: 1.0)
+    }
+
+    public static let success: Color = token("SemanticSuccess", lightHex: 0x0E7C3A, darkHex: 0x4ADE80)
+    public static let warning: Color = token("SemanticWarning", lightHex: 0xB45309, darkHex: 0xFBBF24)
+    public static let error:   Color = token("SemanticError",   lightHex: 0xB91C1C, darkHex: 0xF87171)
+
+    /// Exposed for tests in this module — `Bundle.module` is internal
+    /// to the target that owns the resource manifest, so the test target
+    /// can't reference it directly. Forwarding via a public accessor
+    /// keeps the call-sites symmetric and lets `SemanticColorsTests`
+    /// inspect the catalog lookup without filesystem path probing.
+    public static var resourceBundle: Bundle { .module }
+
+    /// Test-visible accessor for the raw light/dark hex pair used by the
+    /// programmatic fallback. The contrast assertion in
+    /// `SemanticColorsTests` consumes these so the catalog (Xcode build)
+    /// and the fallback (SPM build) are pinned against the same source
+    /// of truth.
+    public static let successLightHex: UInt32 = 0x0E7C3A
+    public static let successDarkHex:  UInt32 = 0x4ADE80
+    public static let warningLightHex: UInt32 = 0xB45309
+    public static let warningDarkHex:  UInt32 = 0xFBBF24
+    public static let errorLightHex:   UInt32 = 0xB91C1C
+    public static let errorDarkHex:    UInt32 = 0xF87171
 }
