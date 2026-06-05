@@ -39,7 +39,6 @@ struct TypedAnswerInputView: View {
                     isFocused = true
                 }.onTapGesture {
                     isFocused = true
-                    print("chante text")
                 }
 
             if hintChars > 0 {
