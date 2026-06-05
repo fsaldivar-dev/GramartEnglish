@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.4.0
+  version: 1.5.1
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -104,7 +104,7 @@ components:
           - listen_type        (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
           - write_pick_word    (v1.3+): see Spanish meaning, pick English word from 4 options
           - write_type_word    (v1.3+): see Spanish meaning, type the English word
-          - write_fill_gaps    (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters (server returns `maskedWord` per question; words ≤ 3 letters auto-promote to plain typed input — `maskedWord` omitted, mode unchanged)
+          - write_fill_gaps    (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters. Server returns `maskedWord` for every question. Words ≤ 3 letters auto-promote to a first-letter scaffold (e.g. `eat` → `e__`, `go` → `g_`); mode stays write_fill_gaps for mastery axis purity (v1.5.1+).
     LessonStartRequest:
       type: object
       required: [level]
@@ -132,12 +132,13 @@ components:
         maskedWord:
           type: string
           description: |
-            v1.5+. Scaffolded English word with underscores in removed
-            positions (e.g. `w__th_r`). Populated ONLY for `write_fill_gaps`
-            and only when the target word is long enough (> 3 letters). For
-            shorter words the server auto-promotes the question to plain
-            typed input and omits this field — clients then render the
-            question identically to `write_type_word`.
+            Scaffolded English word with underscores in removed positions
+            (e.g. `w__th_r`). v1.5.0+ populated for all `write_fill_gaps`
+            questions whose target word has length > 3 using vowels-first
+            masking. v1.5.1+ also populated for short words (≤ 3 letters)
+            using a first-letter anchor scaffold (e.g. `eat` → `e__`, `go`
+            → `g_`). Absent only for the defensive 1-letter edge case (not
+            represented in the production corpus).
         options:
           type: array
           minItems: 4
