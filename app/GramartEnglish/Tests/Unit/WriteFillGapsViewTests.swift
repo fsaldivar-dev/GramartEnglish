@@ -43,4 +43,22 @@ final class WriteFillGapsViewTests: XCTestCase {
         let label = WritingLessonView.fillGapsAccessibilityLabel(for: "w__th_r")
         XCTAssertEqual(label, "Completa la palabra: w espacio espacio th espacio r")
     }
+
+    /// v1.5.2 polish (Marisol): for very short masks (length ≤ 4) where the
+    /// shape is "one visible letter at position 0 + only gaps after", emit a
+    /// natural-language form so the instruction doesn't outlast the word.
+    func testFillGapsAccessibilityLabelUsesNaturalLanguageForLengthTwoMask() {
+        let label = WritingLessonView.fillGapsAccessibilityLabel(for: "g_")
+        XCTAssertEqual(label, "Completa la palabra: g, falta una letra")
+    }
+
+    func testFillGapsAccessibilityLabelUsesNaturalLanguageForLengthThreeMask() {
+        let label = WritingLessonView.fillGapsAccessibilityLabel(for: "e__")
+        XCTAssertEqual(label, "Completa la palabra: e, faltan dos letras")
+    }
+
+    func testFillGapsAccessibilityLabelUsesNaturalLanguageForLengthFourMask() {
+        let label = WritingLessonView.fillGapsAccessibilityLabel(for: "q___")
+        XCTAssertEqual(label, "Completa la palabra: q, faltan tres letras")
+    }
 }
