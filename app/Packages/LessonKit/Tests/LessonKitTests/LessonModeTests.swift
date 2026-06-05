@@ -11,10 +11,10 @@ final class LessonModeTests: XCTestCase {
     }
 
     func testAllCasesCoversAllDefinedModes() {
-        // v1.3: 4 from F002 + 3 write_* from F003 = 7 enum values.
+        // v1.5: 4 from F002 + 3 write_* from F003 (US1+US2+US3) = 7 enum values.
         XCTAssertEqual(LessonMode.allCases.count, 7)
-        // SHIPPED_MODES excludes write_fill_gaps (deferred to v1.4) so 6 ship in v1.3.
-        XCTAssertEqual(SHIPPED_MODES.count, 6)
+        // SHIPPED_MODES includes write_fill_gaps as of v1.5.0 — all 7 ship.
+        XCTAssertEqual(SHIPPED_MODES.count, 7)
     }
 
     func testParsingFromRawString() {

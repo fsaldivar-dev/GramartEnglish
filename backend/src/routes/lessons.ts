@@ -12,6 +12,10 @@ import { LessonService } from '../lessons/lessonService.js';
 const StartRequest = z.object({
   level: CefrLevel,
   mode: LessonMode.default('read_pick_meaning'),
+  /** Optional. Pins the RNG path through `wordSelector` + per-question
+   *  builders so tests can land on a deterministic deck composition. Not
+   *  documented in the public OpenAPI (test affordance only). */
+  seed: z.number().int().nonnegative().optional(),
 });
 const AnswerRequest = z
   .object({
@@ -61,6 +65,7 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
         level: parsed.data.level,
         mode: parsed.data.mode,
         correlationId: req.correlationId,
+        ...(parsed.data.seed !== undefined ? { seed: parsed.data.seed } : {}),
       });
       req.log.info({ lessonId: result.lesson.id, level: parsed.data.level, mode: parsed.data.mode }, 'lesson.started');
       return { lessonId: result.lesson.id, mode: parsed.data.mode, questions: result.questions };

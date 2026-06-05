@@ -14,9 +14,8 @@ export const LessonMode = z.enum([
 ]);
 export type LessonMode = z.infer<typeof LessonMode>;
 
-/** Modes shipped in v1.3 (F003 adds write_pick_word + write_type_word; the
- *  third write variant `write_fill_gaps` is a placeholder for v1.4 and is
- *  excluded so `modeRecommender` doesn't propose it yet). */
+/** Modes shipped in v1.5 (F003 US3 adds `write_fill_gaps`). All seven modes
+ *  are now live and eligible for `modeRecommender`'s argmax(pendingWords). */
 export const SHIPPED_MODES: readonly LessonMode[] = [
   'read_pick_meaning',
   'listen_pick_word',
@@ -24,6 +23,7 @@ export const SHIPPED_MODES: readonly LessonMode[] = [
   'listen_type',
   'write_pick_word',
   'write_type_word',
+  'write_fill_gaps',
 ];
 
 /** Listening modes — auto-play TTS on appear, reveal re-speaks (FR-006, FR-012). */
