@@ -68,7 +68,12 @@ public final class LessonViewModel: ObservableObject {
                 level: level,
                 phase: .answering,
                 currentQuestionIndex: state.currentIndex,
-                answeredCount: state.outcomes.count
+                answeredCount: state.outcomes.count,
+                // F010 v1.11.0 patch (Priya Polish A). Carries the lesson
+                // length so the leftover-resume CTA on `LessonSummaryView`
+                // can render "Pregunta X de Y" instead of falling back to
+                // the shorter "Pregunta X".
+                totalCount: state.questions.count
             )
         case .revealing(let state, _):
             return LessonStateSnapshot(
@@ -77,7 +82,8 @@ public final class LessonViewModel: ObservableObject {
                 level: level,
                 phase: .revealing,
                 currentQuestionIndex: state.currentIndex,
-                answeredCount: state.outcomes.count
+                answeredCount: state.outcomes.count,
+                totalCount: state.questions.count
             )
         case .idle, .loading, .completing, .summary, .failed:
             return nil
