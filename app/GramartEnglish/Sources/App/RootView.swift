@@ -351,7 +351,17 @@ struct LessonFlowView: View {
                     summary: summary,
                     mode: mode,
                     perModeMastered: latestPerModeMastered,
-                    onStartAnother: onExit,
+                    // F008 Item 4 (v1.9.0). Priya flagged: both buttons used
+                    // to wire to `onExit`, which routed the learner through
+                    // Home and re-cost a click to start the next lesson —
+                    // the "siguiente lección" CTA must commit to a new
+                    // lesson directly. We now reset the VM and re-call
+                    // `vm.start()` for "Empezar otra"; "Volver al inicio"
+                    // keeps the original exit path.
+                    onStartAnother: {
+                        latestPerModeMastered = nil
+                        Task { await vm.start(resumeId: nil) }
+                    },
                     onBackHome: onExit
                 )
                 .task {
