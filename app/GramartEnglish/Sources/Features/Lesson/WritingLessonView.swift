@@ -61,6 +61,9 @@ struct WritingLessonView: View {
                     .foregroundStyle(.secondary)
 
                 if mode.isTyped {
+                    if mode == .writeFillGaps, let masked = question.maskedWord {
+                        fillGapsScaffold(masked: masked)
+                    }
                     TypedAnswerInputView(
                         questionId: question.id,
                         canonical: question.word,
@@ -95,6 +98,44 @@ struct WritingLessonView: View {
             .padding(.horizontal, 24)
             .padding(.top, 12)
         }
+    }
+
+    /// Renders the `write_fill_gaps` scaffolding (e.g. `w__th_r`) above the
+    /// text input. The a11y label replaces every `_` with " blank " so
+    /// VoiceOver reads gaps as words instead of spelling underscores.
+    /// `.accessibilityElement(children: .combine)` groups the scaffold with
+    /// its label so VoiceOver doesn't fragment it.
+    @ViewBuilder
+    private func fillGapsScaffold(masked: String) -> some View {
+        VStack(spacing: 4) {
+            Text(masked)
+                .font(.system(.title2, design: .monospaced))
+                .minimumScaleFactor(0.7)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 4)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Self.fillGapsAccessibilityLabel(for: masked))
+        .accessibilityHint("Escribe la palabra completa en inglés")
+    }
+
+    /// Builds the VoiceOver label for `write_fill_gaps`. Replaces every `_`
+    /// with " blank " (with surrounding spaces collapsed) and prefixes it
+    /// with the Spanish instruction. Pinned by `WriteFillGapsViewTests`.
+    static func fillGapsAccessibilityLabel(for masked: String) -> String {
+        var spoken = ""
+        for ch in masked {
+            if ch == "_" {
+                spoken += " blank "
+            } else {
+                spoken.append(ch)
+            }
+        }
+        // Collapse repeated whitespace produced by the replacements and trim.
+        let collapsed = spoken
+            .split(separator: " ", omittingEmptySubsequences: true)
+            .joined(separator: " ")
+        return "Completa la palabra: \(collapsed)"
     }
 
     @ViewBuilder

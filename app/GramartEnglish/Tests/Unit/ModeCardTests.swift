@@ -29,15 +29,14 @@ final class ModeCardTests: XCTestCase {
     }
 
     func testComingSoonInitRendersDisabled() {
-        // F003 shipped writePickWord + writeTypeWord; writeFillGaps remains
-        // the placeholder for v1.4.
-        let card = ModeCard(comingSoon: .writeFillGaps)
+        // v1.5 shipped writeFillGaps; conjugatePickForm remains the placeholder.
+        let card = ModeCard(comingSoon: .conjugatePickForm)
         XCTAssertTrue(card.comingSoon)
         XCTAssertFalse(card.isEnabled)
         XCTAssertFalse(card.isRecommended)
         XCTAssertNil(card.pendingCount)
-        XCTAssertEqual(card.icon, "pencil")
-        XCTAssertEqual(card.title, "Escribir")
+        XCTAssertEqual(card.icon, "arrow.triangle.2.circlepath")
+        XCTAssertEqual(card.title, "Conjugar")
         XCTAssertTrue(card.subtitle.contains("Próximamente"))
     }
 

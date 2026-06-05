@@ -6,6 +6,7 @@ import type { MasteryRepository } from '../store/masteryRepository.js';
 import { LESSON_SIZE, selectLessonWords } from './wordSelector.js';
 import { buildOptions } from './distractorBuilder.js';
 import { levenshteinAtMost } from './levenshtein.js';
+import { maskWord } from './gapMasker.js';
 
 const TYPED_TOLERANCE = 1;
 
@@ -24,6 +25,15 @@ export interface ClientLessonQuestion {
   /** v1.3+. Populated for write modes — Spanish meaning the client should
    *  render as the prompt instead of `word`. Absent for read/listen modes. */
   prompt?: string;
+  /** v1.5+. Populated only for `write_fill_gaps` questions where the target
+   *  word is long enough to mask (length > 3). Holds the scaffolded English
+   *  word with underscores in removed positions (e.g. `w__th_r`). When the
+   *  target word is ≤ 3 letters the masker auto-promotes the question to
+   *  plain typed-answer behavior server-side — `maskedWord` is omitted and
+   *  the client renders the same way it does for `write_type_word`. The
+   *  lesson row stays mode=`write_fill_gaps` so mastery accounting is per
+   *  the chosen axis (FR-007). */
+  maskedWord?: string;
 }
 
 export interface StartLessonResult {
@@ -102,6 +112,17 @@ export class LessonService {
       // because `word` (English) is what TTS plays and what the answer key is.
       if (isWriting) {
         base.prompt = word.spanishOption;
+      }
+      // v1.5 F003 US3: write_fill_gaps adds a scaffolded mask. For words ≤ 3
+      // letters the masker auto-promotes (rule 1 in research §1) — we omit
+      // `maskedWord` so the client renders typed-input only, identical to
+      // write_type_word. Lesson row stays mode=write_fill_gaps, mastery
+      // axis intact (FR-007). Auto-promotion is server-side and opaque.
+      if (mode === 'write_fill_gaps') {
+        const { masked, autoPromoted } = maskWord(word.base);
+        if (!autoPromoted) {
+          base.maskedWord = masked;
+        }
       }
       return base;
     });

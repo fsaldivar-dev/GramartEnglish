@@ -12,7 +12,7 @@ public struct BackendClient: Sendable {
     /// Sent on every request as `X-Client-Version`. The backend uses this to
     /// branch placement /start between the v1.3 (legacy 24-question) and the
     /// v1.4+ (adaptive single-question) shapes.
-    public static let clientVersion = "1.4.1"
+    public static let clientVersion = "1.5.0"
 
     public let baseURL: URL
     public let session: URLSession
@@ -281,6 +281,10 @@ public struct BackendClient: Sendable {
         /// v1.3+. Spanish meaning when the server picks a write mode. Clients
         /// MUST render this in place of `word` when present.
         public let prompt: String?
+        /// v1.5+. Scaffolded English word with underscores for `write_fill_gaps`.
+        /// Omitted by the server when the word was short enough to auto-promote
+        /// to plain typed input — clients then render exactly like `write_type_word`.
+        public let maskedWord: String?
     }
 
     public struct StartLessonRequest: Codable, Sendable {
