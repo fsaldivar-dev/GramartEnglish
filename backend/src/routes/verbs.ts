@@ -20,11 +20,13 @@ export interface VerbRouteDeps {
  * exactly once per (macInstall, verbBase) — see VerbIntroSeenStore. The server
  * is stateless about that flag; clients gate calls themselves.
  *
- * Why server-side slot-fill of exampleEs?
- * - The conjugation question reuses the unfilled `example_es` (with `___`) so
- *   the learner has to commit to a tense. The intro card shows the answer in
- *   context to ground meaning. Doing the substitution here means the client
- *   never holds the two variants — one trip, one DTO.
+ * Why both `exampleEs` and `exampleEsFilled`?
+ * - The conjugation question reuses the unfilled `exampleEs` (with `___`) so
+ *   the learner has to commit to a tense. The intro card shows the
+ *   already-substituted `exampleEsFilled` to ground meaning without showing a
+ *   literal gap on a teaching surface (v1.7.0 patch). Both fields come from
+ *   verbs.json — the filled form is hand-curated per verb because
+ *   algorithmic Spanish preterite conjugation is too unreliable.
  */
 export async function registerVerbRoutes(app: FastifyInstance, deps: VerbRouteDeps): Promise<void> {
   app.get('/v1/verbs/:base/intro', async (req, reply) => {
@@ -36,16 +38,19 @@ export async function registerVerbRoutes(app: FastifyInstance, deps: VerbRouteDe
     if (!row) {
       return reply.code(404).send({ code: 'verb_not_found', message: `unknown verb base: ${parsed.data.base}` });
     }
-    // The intro pairs the Spanish prompt (with `___` slot still visible) with
-    // the fully-conjugated English translation. The blank doubles as visual
-    // foreshadowing of the question shape the learner will see next, and
-    // avoids the awkward mixed-language artifact of slotting an English form
-    // into a Spanish sentence.
+    // v1.7.0 patch (F006 Blocker 1): the intro card uses `exampleEsFilled`
+    // (Spanish past form substituted into the slot) — Marisol read the
+    // bare `___` as a literal error on a teaching surface. The unfilled
+    // `exampleEs` is still returned so any downstream consumer that needs
+    // the gap shape (currently none for /intro, but conjugation drills
+    // reuse the same row through verbConjugationBuilder) has it. The
+    // English line continues to show the fully conjugated translation.
     req.log.info({ verbBase: row.base }, 'verb.intro.fetched');
     return {
       base: row.base,
       es: row.es,
       exampleEs: row.exampleEs,
+      exampleEsFilled: row.exampleEsFilled,
       exampleEn: row.exampleEn,
       audioBase: row.audioBase,
     };
