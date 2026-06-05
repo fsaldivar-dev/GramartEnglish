@@ -228,7 +228,11 @@ struct LessonFlowView: View {
                     Text("Loading lesson…").foregroundStyle(.secondary)
                 }
             case .answering(let state):
-                if let q = state.currentQuestion {
+                if let intro = vm.pendingIntro {
+                    // F006 (v1.7.0): "Conoce el verbo" micro-card before the
+                    // first conjugate_pick_form question per verb.
+                    VerbIntroCard(intro: intro, onDismiss: { vm.dismissVerbIntro() })
+                } else if let q = state.currentQuestion {
                     questionView(for: q, state: state)
                 } else { ProgressView() }
             case .revealing(let state, let outcome):
