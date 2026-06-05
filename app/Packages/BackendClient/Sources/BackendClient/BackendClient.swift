@@ -9,6 +9,10 @@ public enum BackendClientError: Error, Sendable {
 
 public struct BackendClient: Sendable {
     public static let apiVersionPath = "/v1"
+    /// Sent on every request as `X-Client-Version`. The backend uses this to
+    /// branch placement /start between the v1.3 (legacy 24-question) and the
+    /// v1.4+ (adaptive single-question) shapes.
+    public static let clientVersion = "1.4.0"
 
     public let baseURL: URL
     public let session: URLSession
@@ -53,6 +57,7 @@ public struct BackendClient: Sendable {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(correlationIdProvider(), forHTTPHeaderField: "x-correlation-id")
+        req.setValue(Self.clientVersion, forHTTPHeaderField: "x-client-version")
         if let body = body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONEncoder().encode(body)
@@ -110,18 +115,108 @@ public struct BackendClient: Sendable {
         public let level: String
     }
 
+    /// Legacy v1.3 shape — 24 questions upfront. Returned when the backend
+    /// doesn't see `x-client-version: 1.4+`. The v1.4 client never sees this
+    /// shape because we always send the header.
     public struct PlacementStartResponse: Codable, Sendable, Equatable {
         public let placementId: String
         public let questions: [PlacementQuestion]
     }
 
-    public struct PlacementStartRequest: Codable, Sendable {
-        public let seed: Int?
-        public init(seed: Int? = nil) { self.seed = seed }
+    /// v1.4 adaptive shape — single question + progress hint.
+    public struct PlacementStartAdaptiveResponse: Codable, Sendable, Equatable {
+        public let placementId: String
+        public let question: PlacementQuestion
+        public let progress: PlacementProgress
+        public let algorithmVersion: String
     }
 
+    public struct PlacementProgress: Codable, Sendable, Equatable {
+        public let current: Int
+        public let max: Int
+    }
+
+    public enum PlacementSelfReport: String, Codable, Sendable, CaseIterable {
+        case never, some, lots
+    }
+
+    public struct PlacementStartRequest: Codable, Sendable {
+        public let seed: Int?
+        public let selfReport: String?  // PlacementSelfReport.rawValue, kept as String for back-compat
+        public init(seed: Int? = nil, selfReport: PlacementSelfReport? = nil) {
+            self.seed = seed
+            self.selfReport = selfReport?.rawValue
+        }
+    }
+
+    /// Legacy v1.3-style start. Kept for backwards compatibility with code
+    /// that might still call it; new code uses `startAdaptivePlacement`.
     public func startPlacement(seed: Int? = nil) async throws -> PlacementStartResponse {
         try await post("/placement/start", body: PlacementStartRequest(seed: seed), as: PlacementStartResponse.self)
+    }
+
+    /// v1.4 adaptive start — backend honors `x-client-version` and returns the
+    /// adaptive shape automatically.
+    public func startAdaptivePlacement(
+        seed: Int? = nil,
+        selfReport: PlacementSelfReport? = nil
+    ) async throws -> PlacementStartAdaptiveResponse {
+        try await post(
+            "/placement/start",
+            body: PlacementStartRequest(seed: seed, selfReport: selfReport),
+            as: PlacementStartAdaptiveResponse.self
+        )
+    }
+
+    public struct PlacementAnswerRequest: Codable, Sendable {
+        public let placementId: String
+        public let questionId: String
+        public let optionIndex: Int  // -1 means "no lo sé"
+        public init(placementId: String, questionId: String, optionIndex: Int) {
+            self.placementId = placementId
+            self.questionId = questionId
+            self.optionIndex = optionIndex
+        }
+    }
+
+    /// v1.4 — server-streamed discriminated union: either a continuation or a
+    /// terminal result. Decoded via `kind` discriminator.
+    public enum PlacementAnswerResponse: Sendable, Equatable {
+        case `continue`(question: PlacementQuestion, progress: PlacementProgress)
+        case done(result: PlacementResultResponse)
+    }
+
+    public func answerPlacement(
+        placementId: String,
+        questionId: String,
+        optionIndex: Int
+    ) async throws -> PlacementAnswerResponse {
+        let raw = try await post(
+            "/placement/answer",
+            body: PlacementAnswerRequest(placementId: placementId, questionId: questionId, optionIndex: optionIndex),
+            as: PlacementAnswerRaw.self
+        )
+        switch raw.kind {
+        case "continue":
+            guard let q = raw.question, let p = raw.progress else {
+                throw BackendClientError.decoding(NSError(domain: "PlacementAnswer", code: 1))
+            }
+            return .continue(question: q, progress: p)
+        case "done":
+            guard let r = raw.result else {
+                throw BackendClientError.decoding(NSError(domain: "PlacementAnswer", code: 2))
+            }
+            return .done(result: r)
+        default:
+            throw BackendClientError.decoding(NSError(domain: "PlacementAnswer", code: 3))
+        }
+    }
+
+    private struct PlacementAnswerRaw: Codable {
+        let kind: String
+        let question: PlacementQuestion?
+        let progress: PlacementProgress?
+        let result: PlacementResultResponse?
     }
 
     public struct PlacementAnswer: Codable, Sendable, Equatable {
@@ -150,6 +245,22 @@ public struct BackendClient: Sendable {
     public struct PlacementResultResponse: Codable, Sendable, Equatable {
         public let estimatedLevel: String
         public let perLevelScores: [String: PerLevelScore]
+        /// v1.4+. Optional — "v1" for legacy batch, "v2" for adaptive.
+        public let algorithmVersion: String?
+        /// v1.4+. Number of items the adaptive test administered.
+        public let itemsAdministered: Int?
+
+        public init(
+            estimatedLevel: String,
+            perLevelScores: [String: PerLevelScore],
+            algorithmVersion: String? = nil,
+            itemsAdministered: Int? = nil
+        ) {
+            self.estimatedLevel = estimatedLevel
+            self.perLevelScores = perLevelScores
+            self.algorithmVersion = algorithmVersion
+            self.itemsAdministered = itemsAdministered
+        }
     }
 
     public func submitPlacement(placementId: String, answers: [PlacementAnswer]) async throws -> PlacementResultResponse {
@@ -344,6 +455,7 @@ public struct BackendClient: Sendable {
         req.httpMethod = "GET"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(correlationIdProvider(), forHTTPHeaderField: "x-correlation-id")
+        req.setValue(Self.clientVersion, forHTTPHeaderField: "x-client-version")
         let (data, response): (Data, URLResponse)
         do { (data, response) = try await session.data(for: req) } catch { throw BackendClientError.transport(error) }
         guard let http = response as? HTTPURLResponse else { throw BackendClientError.http(status: -1, body: "") }

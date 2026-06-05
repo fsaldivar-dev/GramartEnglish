@@ -95,3 +95,50 @@ export function selectPlacementQuestions(
 
   return questions;
 }
+
+/**
+ * Pick ONE placement question at the given level, excluding any wordIds already
+ * shown in this in-flight placement. Used by the adaptive flow (F005).
+ *
+ * Returns `null` if the corpus at this level is exhausted (rare — only when
+ * usedWordIds covers every word at the level).
+ */
+export function pickQuestionForLevel(
+  repo: WordRepository,
+  level: CefrLevel,
+  usedWordIds: ReadonlySet<number>,
+  seed?: number,
+): PlacementQuestion | null {
+  const rng = new Rng(seed);
+  const pool = repo.byLevel(level).filter((w) => !usedWordIds.has(w.id));
+  if (pool.length === 0) return null;
+  const target = rng.pick(pool, 1)[0]!;
+
+  // Same-level distractors first (4-option ⇒ need 3).
+  const sameLevelDistractors = pool.filter(
+    (w) => w.id !== target.id && w.spanishOption !== target.spanishOption,
+  );
+  let distractors = rng.pick(sameLevelDistractors, 3);
+  if (distractors.length < 3) {
+    const fallback: VocabularyWordRow[] = [];
+    for (const other of ALL_LEVELS) {
+      if (other === level) continue;
+      fallback.push(
+        ...repo.byLevel(other).filter((w) => w.spanishOption !== target.spanishOption),
+      );
+    }
+    distractors = [...distractors, ...rng.pick(fallback, 3 - distractors.length)];
+  }
+
+  const optionsRaw = rng.shuffle([target.spanishOption, ...distractors.map((d) => d.spanishOption)]);
+  const correctIndex = optionsRaw.indexOf(target.spanishOption);
+  return {
+    id: randomUUID(),
+    wordId: target.id,
+    word: target.base,
+    sentence: target.canonicalExamples[0] ?? '',
+    level: target.level,
+    options: optionsRaw,
+    correctIndex,
+  };
+}

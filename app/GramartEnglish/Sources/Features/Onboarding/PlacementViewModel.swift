@@ -5,17 +5,18 @@ import BackendClient
 public final class PlacementViewModel: ObservableObject {
 
     public enum State: Equatable {
-        case idle
+        case selfReport
         case loading
-        case running(questions: [BackendClient.PlacementQuestion], currentIndex: Int, answers: [BackendClient.PlacementAnswer])
+        case question(current: Int, max: Int, q: BackendClient.PlacementQuestion)
         case submitting
         case finished(BackendClient.PlacementResultResponse)
         case failed(String)
 
         public static func == (lhs: State, rhs: State) -> Bool {
             switch (lhs, rhs) {
-            case (.idle, .idle), (.loading, .loading), (.submitting, .submitting): return true
-            case let (.running(lq, li, la), .running(rq, ri, ra)): return lq == rq && li == ri && la == ra
+            case (.selfReport, .selfReport), (.loading, .loading), (.submitting, .submitting): return true
+            case let (.question(lc, lm, lq), .question(rc, rm, rq)):
+                return lc == rc && lm == rm && lq == rq
             case let (.finished(l), .finished(r)): return l == r
             case let (.failed(l), .failed(r)): return l == r
             default: return false
@@ -23,7 +24,7 @@ public final class PlacementViewModel: ObservableObject {
         }
     }
 
-    @Published public private(set) var state: State = .idle
+    @Published public private(set) var state: State = .selfReport
     private let client: BackendClient
     private var placementId: String = ""
 
@@ -31,50 +32,51 @@ public final class PlacementViewModel: ObservableObject {
         self.client = client
     }
 
-    public func start() async {
+    /// Restart the test from the self-report screen.
+    public func reset() {
+        state = .selfReport
+        placementId = ""
+    }
+
+    public func start(selfReport: BackendClient.PlacementSelfReport?) async {
         state = .loading
         do {
-            let response = try await client.startPlacement(seed: nil)
+            let response = try await client.startAdaptivePlacement(seed: nil, selfReport: selfReport)
             placementId = response.placementId
-            state = .running(questions: response.questions, currentIndex: 0, answers: [])
+            state = .question(
+                current: response.progress.current,
+                max: response.progress.max,
+                q: response.question
+            )
         } catch {
             state = .failed(Self.describe(error))
         }
     }
 
     public func currentQuestion() -> BackendClient.PlacementQuestion? {
-        guard case let .running(qs, idx, _) = state else { return nil }
-        return idx < qs.count ? qs[idx] : nil
+        if case let .question(_, _, q) = state { return q }
+        return nil
     }
 
     public func progress() -> (current: Int, total: Int)? {
-        guard case let .running(qs, idx, _) = state else { return nil }
-        return (idx + 1, qs.count)
+        if case let .question(c, m, _) = state { return (c, m) }
+        return nil
     }
 
     public func answer(_ optionIndex: Int) async {
-        guard case .running(let questions, let idx, var answers) = state, idx < questions.count else { return }
-        // -1 means "I don't know"; record locally as a skip (no submission for that question).
-        if optionIndex >= 0 {
-            answers.append(.init(questionId: questions[idx].id, optionIndex: optionIndex))
-        }
-        let nextIdx = idx + 1
-        if nextIdx < questions.count {
-            state = .running(questions: questions, currentIndex: nextIdx, answers: answers)
-        } else {
-            await submit(answers: answers)
-        }
-    }
-
-    private func submit(answers: [BackendClient.PlacementAnswer]) async {
-        state = .submitting
+        guard case let .question(_, _, q) = state else { return }
         do {
-            // Guard against an entirely-skipped placement; backend requires ≥1 answer.
-            let safeAnswers = answers.isEmpty
-                ? [BackendClient.PlacementAnswer(questionId: UUID().uuidString.lowercased(), optionIndex: 0)]
-                : answers
-            let result = try await client.submitPlacement(placementId: placementId, answers: safeAnswers)
-            state = .finished(result)
+            let res = try await client.answerPlacement(
+                placementId: placementId,
+                questionId: q.id,
+                optionIndex: optionIndex
+            )
+            switch res {
+            case let .continue(question: nextQ, progress: p):
+                state = .question(current: p.current, max: p.max, q: nextQ)
+            case let .done(result: r):
+                state = .finished(r)
+            }
         } catch {
             state = .failed(Self.describe(error))
         }
