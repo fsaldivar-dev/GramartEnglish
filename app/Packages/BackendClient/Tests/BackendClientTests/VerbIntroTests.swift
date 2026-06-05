@@ -29,6 +29,7 @@ final class VerbIntroTests: XCTestCase {
               "base": "go",
               "es": "ir",
               "exampleEs": "Ayer ___ al cine con mi hermana.",
+              "exampleEsFilled": "Ayer fui al cine con mi hermana.",
               "exampleEn": "Yesterday I went to the movies with my sister.",
               "audioBase": "go.mp3"
             }
@@ -47,6 +48,10 @@ final class VerbIntroTests: XCTestCase {
         XCTAssertEqual(intro?.es, "ir")
         XCTAssertEqual(intro?.audioBase, "go.mp3")
         XCTAssertTrue(intro?.exampleEs.contains("___") ?? false)
+        // v1.7.0 patch (Blocker 1): the filled form must NOT carry the slot
+        // and must include the conjugated Spanish form.
+        XCTAssertFalse(intro?.exampleEsFilled.contains("___") ?? true)
+        XCTAssertTrue(intro?.exampleEsFilled.lowercased().contains("fui") ?? false)
         XCTAssertTrue(intro?.exampleEn.lowercased().contains("went") ?? false)
     }
 

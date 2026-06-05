@@ -440,20 +440,25 @@ public struct BackendClient: Sendable {
     // MARK: - Verb intro (F006, v1.7.0)
 
     /// Pre-conjugation micro-card payload. Returned by
-    /// `GET /v1/verbs/{base}/intro`. The Spanish example keeps its `___` slot
-    /// — the card pairs the prompt shape with a fully-conjugated English
-    /// translation.
+    /// `GET /v1/verbs/{base}/intro`.
+    ///
+    /// `exampleEs` keeps its `___` slot — the conjugation drill uses it as
+    /// the question. `exampleEsFilled` (v1.7.0 patch) is the same sentence
+    /// with the Spanish past form substituted; the intro card renders that
+    /// so the teaching surface never shows a literal blank.
     public struct VerbIntro: Codable, Sendable, Equatable {
         public let base: String
         public let es: String
         public let exampleEs: String
+        public let exampleEsFilled: String
         public let exampleEn: String
         public let audioBase: String
 
-        public init(base: String, es: String, exampleEs: String, exampleEn: String, audioBase: String) {
+        public init(base: String, es: String, exampleEs: String, exampleEsFilled: String, exampleEn: String, audioBase: String) {
             self.base = base
             self.es = es
             self.exampleEs = exampleEs
+            self.exampleEsFilled = exampleEsFilled
             self.exampleEn = exampleEn
             self.audioBase = audioBase
         }
