@@ -33,6 +33,16 @@ export interface VerbRow {
   irregular: boolean;
   audioBase: string;
   audioPast: string;
+  /** v1.6.0 patch (Blocker 2): Spanish example sentence with `___` marking
+   *  the verb slot, e.g. "Ayer ___ tacos." The blank disambiguates tenses
+   *  that Spanish distinguishes (preterite vs imperfect) but English
+   *  collapses (both → "ate"). Temporal markers (ayer, anoche, la semana
+   *  pasada, el año pasado) anchor the answer to past simple. */
+  exampleEs: string;
+  /** v1.6.0 patch (Blocker 2): the English translation of `exampleEs` with
+   *  the verb already conjugated — shown after the user answers as a
+   *  reinforcement, never as a hint before they choose. */
+  exampleEn: string;
 }
 
 const VerbFile = z.array(
@@ -46,6 +56,8 @@ const VerbFile = z.array(
     irregular: z.boolean(),
     audio_base: z.string().min(1),
     audio_past: z.string().min(1),
+    example_es: z.string().min(1),
+    example_en: z.string().min(1),
   }),
 );
 
@@ -122,6 +134,8 @@ export function loadVerbCorpus(corpusDir: string, words: WordRepository): VerbRe
       irregular: v.irregular,
       audioBase: v.audio_base,
       audioPast: v.audio_past,
+      exampleEs: v.example_es,
+      exampleEn: v.example_en,
     });
   }
   return new VerbRepository(rows);
