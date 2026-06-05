@@ -21,6 +21,15 @@ public final class LessonViewModel: ObservableObject {
     /// Set by `presentIntroIfNeeded` before the first question that targets a
     /// previously-unseen verb; cleared by `dismissVerbIntro`.
     @Published public private(set) var pendingIntro: BackendClient.VerbIntro?
+    /// F007 patch (v1.8.0). When the lesson was entered via a resume path
+    /// (not a fresh start), this carries the snapshot metadata so the view
+    /// can render the "Continuando…" banner with accurate Q{n}/{total}.
+    /// Cleared after the first user gesture so the banner only shows once.
+    @Published public var resumeBanner: ResumeBanner?
+    public struct ResumeBanner: Equatable, Sendable {
+        public let currentQuestionIndex: Int
+        public let totalCount: Int
+    }
     public let mode: LessonMode
     private let client: BackendClient
     private let level: String
@@ -86,11 +95,28 @@ public final class LessonViewModel: ObservableObject {
         }
     }
 
-    public func start() async {
+    public func start(resumeId: String? = nil) async {
         phase = .loading
         do {
-            let response = try await client.startLesson(level: level, mode: mode.rawValue)
-            let questions = response.questions.map { q in
+            let lessonId: String
+            let dtoQuestions: [BackendClient.LessonQuestionDTO]
+            if let resumeId {
+                // F007 patch (v1.8.0). Critical: take the GET path. POSTing
+                // /lessons here would create a new lesson row and silently
+                // discard ~15min of learner progress — the exact bug Marisol
+                // and Priya independently flagged in QA.
+                let resumed = try await client.resumeLesson(lessonId: resumeId)
+                lessonId = resumed.lessonId
+                dtoQuestions = resumed.questions
+                if let answered = resumed.answeredCount, let total = resumed.totalCount {
+                    resumeBanner = ResumeBanner(currentQuestionIndex: answered, totalCount: total)
+                }
+            } else {
+                let response = try await client.startLesson(level: level, mode: mode.rawValue)
+                lessonId = response.lessonId
+                dtoQuestions = response.questions
+            }
+            let questions = dtoQuestions.map { q in
                 LessonQuestion(
                     id: q.id,
                     word: q.word,
@@ -104,7 +130,7 @@ public final class LessonViewModel: ObservableObject {
                     exampleEn: q.exampleEn
                 )
             }
-            let state = LessonState(lessonId: response.lessonId, questions: questions)
+            let state = LessonState(lessonId: lessonId, questions: questions)
             questionShownAt = .now
             phase = .answering(state)
             persistSnapshot()
@@ -144,6 +170,10 @@ public final class LessonViewModel: ObservableObject {
         }
         pendingIntro = nil
         questionShownAt = .now
+        // F007 Polish A (v1.8.0). Persist on dismiss so a Cmd+Q in the
+        // window between intro-dismissed and first-answer doesn't re-show
+        // the intro card on relaunch — Priya's report.
+        persistSnapshot()
     }
 
     public func answer(_ optionIndex: Int) async {

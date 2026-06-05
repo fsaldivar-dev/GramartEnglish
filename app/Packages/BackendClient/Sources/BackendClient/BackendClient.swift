@@ -323,6 +323,29 @@ public struct BackendClient: Sendable {
         )
     }
 
+    /// F007 patch (v1.8.0). Resume an in-flight lesson by id. The backend
+    /// returns the remaining (unanswered) questions plus the persisted mode
+    /// in the same shape as `startLesson`, so the caller can drop the result
+    /// into the existing answering flow without branching.
+    ///
+    /// Throws `.http(404)` if the lesson is unknown or already completed —
+    /// callers should clear the local snapshot in that case and fall back
+    /// to a fresh `startLesson`.
+    public struct ResumeLessonResponse: Codable, Sendable, Equatable {
+        public let lessonId: String
+        public let mode: String?
+        public let level: String?
+        public let questions: [LessonQuestionDTO]
+        /// Number of questions already answered server-side. The client uses
+        /// this to keep the progress strip in sync on resume.
+        public let answeredCount: Int?
+        public let totalCount: Int?
+    }
+
+    public func resumeLesson(lessonId: String) async throws -> ResumeLessonResponse {
+        try await get("/lessons/\(lessonId)", as: ResumeLessonResponse.self)
+    }
+
     public struct AnswerLessonRequest: Codable, Sendable {
         public let questionId: String
         public let optionIndex: Int?

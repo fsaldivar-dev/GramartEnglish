@@ -426,6 +426,7 @@ export class LessonService {
       };
     }
     const lessonMode: LessonMode = (lesson.mode as LessonMode | undefined) ?? 'read_pick_meaning';
+    const isWriting = lessonMode === 'write_pick_word' || lessonMode === 'write_type_word' || lessonMode === 'write_fill_gaps';
     const remaining = questions
       .filter((q) => q.selectedIndex === null)
       .map((q): ClientLessonQuestion => {
@@ -436,6 +437,18 @@ export class LessonService {
           options: q.options,
           position: q.position,
         };
+        // F007 patch (v1.8.0). Match `startLesson`'s per-mode enrichment so a
+        // resumed write/fill-gaps lesson surfaces the Spanish prompt + the
+        // masked scaffold — without these the client renders a blank prompt.
+        if (isWriting && word) {
+          base.prompt = word.spanishOption;
+        }
+        if (lessonMode === 'write_fill_gaps' && word) {
+          const { masked } = maskWord(word.base);
+          if (masked && masked !== word.base) {
+            base.maskedWord = masked;
+          }
+        }
         if (lessonMode === 'conjugate_pick_form' && this.deps.verbs) {
           const verb = this.deps.verbs.lookupByWordId(q.wordId);
           if (verb) {
