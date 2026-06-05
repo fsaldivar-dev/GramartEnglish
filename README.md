@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.10.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.11.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -23,6 +23,12 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## What's new
 
+- **v1.11.0 — Design system completion + Resume CTA + 4 false-friends (F010, 4 locked items)** —
+  - **Token sweep finished**: Mariana's v1.10 IOU paid. 13 `cornerRadius` literals, 5 `.tint.opacity` literals, and 5 raw `.green/.red/.orange` foregrounds across `Sources/Features/` (+ one in `App/RootView`) migrated to `Radius.*`, `Tint.*`, and `Semantic.*` tokens. Rounding policy: when between scale steps, round to the lower step (the two `cornerRadius: 14` literals in `ModeCard` go to `Radius.md`=12, not `Radius.lg`=16). The contract test now lints all three literal classes with the same offender-list shape as the F008 `.system(size:)` walker.
+  - **Warm-tune dark Semantic palette**: dark `SemanticWarning` flips `#FBBF24` → `#F5C242` (canary → honey amber), dark `SemanticError` flips `#F87171` → `#EF5B5B` (coral-pink → saturated coral). Both still clear WCAG AA on `#1E1E1E` (warning ≈ 10.2:1, error ≈ 5.1:1) per the updated `SemanticColorsTests`. Light variants and `SemanticSuccess` are unchanged.
+  - **Resume CTA on the lesson summary**: Priya's P1. When `LessonSummaryView` renders and `LessonStateStore` still holds a snapshot for a *different* in-flight lesson, a "Continuar lección anterior" card now surfaces above the existing CTAs. Without it, an abandoned lesson would silently rot under the next "Empezar otra lección" click. New `ResumeLessonCard`; `LessonSummaryView` gains `resumableSnapshot:` + `onResumeLesson:` + a public `shouldShowResumeCard` predicate for testability.
+  - **4 new Lucía false-friend belt entries**: `embarrassed` at A2 + B1 with refined copy (names the social cost: "el más peligroso socialmente"), `record` at A2 (grabar vs recordar), `attend` at B1 (asistir a vs atender), `discuss` at B1 (conversar sobre vs pelear). Round-trip pinned by `backend/tests/unit/store/falseFriend.f010.test.ts`.
+  - See [specs/010-design-system-completion/](specs/010-design-system-completion/).
 - **v1.10.0 — False-friend bias, Dark Mode assets, A1 belt expansion, muted speaker glyph (F009, 4 locked items)** —
   - **Dark Mode semantic colors**: `Semantic.success/warning/error` finally pay off the v1.8.0 TODO. Three named colorsets ship in `Sources/Resources/Assets.xcassets` with light + dark variants tuned to WCAG AA contrast on the macOS window background (`#0E7C3A`/`#4ADE80`, `#B45309`/`#FBBF24`, `#B91C1C`/`#F87171`). An SPM-build fallback synthesises a dynamic NSColor that auto-swaps on `ColorScheme` when the catalog isn't compiled by `actool`, so `swift build` runs stay correct.
   - **A1 + B1 false-friend belt v2**: 6 new entries — A1 ×4 (`large`/`rope`/`once`/`soap`) catch day-1 traps that the v1.9.0 A2/B1 belt didn't cover; B1 ×2 (`constipated`/`molest`) are the highest-social-cost traps. Each carries the same "OJO: …" warning pattern as the v1.9 belt.
@@ -50,7 +56,7 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## Active feature
 
-Active feature: `008-mute-tokens-falsefriends` (v1.9.0 shipped). Most recent design artifacts live under [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/); prior releases under [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/), [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
+Active feature: `010-design-system-completion` (v1.11.0 shipped). Most recent design artifacts live under [specs/010-design-system-completion/](specs/010-design-system-completion/); prior releases under [specs/009-falsefriend-bias-darkmode-assets/](specs/009-falsefriend-bias-darkmode-assets/), [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/), [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/), [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
 The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 

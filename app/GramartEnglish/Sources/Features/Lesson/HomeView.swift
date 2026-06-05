@@ -98,7 +98,7 @@ struct HomeView: View {
                 .font(.system(.title2, design: .rounded).weight(.semibold))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(.tint.opacity(0.18), in: Capsule())
+                .background(.tint.opacity(Tint.medium), in: Capsule())
                 .foregroundStyle(.tint)
                 .accessibilityLabel("Nivel actual \(level)")
             Text("Tu nivel actual").foregroundStyle(.secondary)
@@ -172,14 +172,17 @@ struct HomeView: View {
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .background(.tint.opacity(0.15), in: Capsule())
+                    // F010 (v1.11.0). 0.15 rounds to Tint.soft (0.12) — the
+                    // nearest token; preserves chip layering rhythm.
+                    .background(.tint.opacity(Tint.soft), in: Capsule())
                     .foregroundStyle(.tint)
             }
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
         .frame(maxWidth: 320)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+        // F010 (v1.11.0). 10pt → Radius.md (12).
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Última lección: \(last.score) de \(last.total) en nivel \(last.level)")
     }

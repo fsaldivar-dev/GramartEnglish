@@ -99,7 +99,8 @@ struct ExamplesPanelView: View {
 private struct ShimmerLine: View {
     @State private var shimmer = false
     var body: some View {
-        RoundedRectangle(cornerRadius: 6)
+        // F010 (v1.11.0). 6pt → Radius.sm (8).
+        RoundedRectangle(cornerRadius: Radius.sm)
             .fill(.quaternary)
             .frame(height: 28)
             .opacity(shimmer ? 0.6 : 1.0)

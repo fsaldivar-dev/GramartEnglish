@@ -41,7 +41,7 @@ struct ModeCard: View {
                             .font(.caption2.weight(.semibold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(.tint.opacity(0.18), in: Capsule())
+                            .background(.tint.opacity(Tint.medium), in: Capsule())
                             .foregroundStyle(.tint)
                             .accessibilityLabel("Recomendado para ti")
                     }
@@ -72,9 +72,12 @@ struct ModeCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14))
+            // F010 (v1.11.0). 14pt is between md=12 and lg=16; we round
+            // DOWN to Radius.md to preserve the visual rhythm (Mariana:
+            // prefer the lower step when between scales).
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: Radius.md)
                     .strokeBorder(isRecommended && !comingSoon ? Color.accentColor.opacity(0.45) : Color.clear, lineWidth: 1.5)
             )
             .opacity(comingSoon || !isEnabled ? 0.5 : 1.0)

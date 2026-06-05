@@ -55,6 +55,13 @@ public struct LessonStateSnapshot: Codable, Equatable, Sendable {
     /// "you started this 2h ago — keep going?" prompts in a future iteration
     /// and for debugging stale-snapshot reports.
     public let savedAt: Date
+    /// F010 v1.11.0 patch (Priya Polish A). Total questions in the lesson
+    /// the snapshot was taken from. Optional and additive so a snapshot
+    /// written by a pre-v1.11.0 build still decodes — the decoder fills
+    /// nil and the consumer falls back to the shorter "Pregunta X" copy.
+    /// `LessonSummaryView`/`ResumeLessonCard` use this to render the
+    /// preferred "Pregunta X de Y" form on the leftover-resume CTA.
+    public let totalCount: Int?
 
     public init(
         lessonId: String,
@@ -63,7 +70,8 @@ public struct LessonStateSnapshot: Codable, Equatable, Sendable {
         phase: Phase,
         currentQuestionIndex: Int,
         answeredCount: Int,
-        savedAt: Date = .now
+        savedAt: Date = .now,
+        totalCount: Int? = nil
     ) {
         self.lessonId = lessonId
         self.mode = mode
@@ -72,6 +80,7 @@ public struct LessonStateSnapshot: Codable, Equatable, Sendable {
         self.currentQuestionIndex = currentQuestionIndex
         self.answeredCount = answeredCount
         self.savedAt = savedAt
+        self.totalCount = totalCount
     }
 }
 

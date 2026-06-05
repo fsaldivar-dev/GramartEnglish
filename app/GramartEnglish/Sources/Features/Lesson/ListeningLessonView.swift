@@ -128,7 +128,7 @@ struct ListeningLessonView: View {
                     .foregroundStyle(.tint)
                     .padding(28)
                     .frame(width: 160, height: 160)
-                    .background(.tint.opacity(0.12), in: Circle())
+                    .background(.tint.opacity(Tint.soft), in: Circle())
                 Text(hintLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
