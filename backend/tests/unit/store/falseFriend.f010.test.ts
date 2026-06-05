@@ -9,9 +9,10 @@ import { WordRepository } from '../../../src/store/wordRepository.js';
 /**
  * F010 (v1.11.0). Lucía's four new A2-B1 false-friend traps —
  * `embarrassed`/`record` at A2 and `attend`/`discuss` at B1. The
- * `embarrassed` row was already present at A2 in v1.9 but with copy
- * Lucía later refined ("pregnant — el falso amigo más peligroso
- * socialmente"). The B1 mirror was kept and updated to match.
+ * `embarrassed` row was already present at A2 in v1.9; Lucía has
+ * iterated the copy twice (the v1.11.0 patch swapped the
+ * auto-promotional "el falso amigo más peligroso socialmente" for
+ * the softer "puede dar pena ajena" closer).
  *
  * The same round-trip guard as the F009 belt test: a missing entry,
  * a snake_case typo, or a drift in Lucía's locked copy all fail here.
@@ -28,12 +29,17 @@ function setup(): WordRepository {
 }
 
 describe('F010 — A2 false-friend additions', () => {
-  it('loads embarrassed at A2 with the refined "pregnant" copy', () => {
+  it('loads embarrassed at A2 with the refined "pena ajena" copy', () => {
     const w = setup().byBase('embarrassed');
     expect(w).toBeDefined();
     expect(w?.level).toBe('A2');
     expect(w?.falseFriendEs).toContain('pregnant');
-    expect(w?.falseFriendEs).toContain('socialmente');
+    // v1.11.0 patch — replaced the "peligroso socialmente" sign-off
+    // with the softer "pena ajena" closer. The presence of either
+    // would pass a substring search, so we pin BOTH the new phrasing
+    // and the absence of the dropped phrase.
+    expect(w?.falseFriendEs).toContain('pena ajena');
+    expect(w?.falseFriendEs).not.toContain('socialmente');
   });
 
   it('loads record at A2 with the grabar-vs-recordar warning', () => {
