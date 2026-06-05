@@ -14,8 +14,11 @@ struct LessonQuestionView: View {
                 HStack(spacing: Spacing.sm) {
                     // F008 Item 1 (v1.9.0). Mute toggle sits left of the
                     // exit X so reaching it doesn't require a Settings
-                    // detour mid-lesson. `M` is the bare-key shortcut —
+                    // detour mid-lesson. `⌘M` is the keyboard shortcut —
                     // see `MuteToggleButton` for the accessibility wiring.
+                    // v1.9.0 patch (Marisol): leading Spacer pushes both
+                    // chrome buttons to the right edge of the question card.
+                    Spacer()
                     MuteToggleButton()
                     Button(action: onExit) {
                         Image(systemName: "xmark.circle")
@@ -23,7 +26,6 @@ struct LessonQuestionView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Salir de la lección")
-                    Spacer()
                 }
 
                 ProgressHeader(current: progress.current, total: progress.total)
