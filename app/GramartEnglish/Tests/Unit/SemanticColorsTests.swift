@@ -105,7 +105,7 @@ final class SemanticColorsTests: XCTestCase {
     func test_warningDark_meetsAAOnDarkBg() {
         let ratio = contrast(nscolor(fromHex: Semantic.warningDarkHex), darkBg)
         XCTAssertGreaterThanOrEqual(ratio, 4.5,
-            "Dark SemanticWarning (#FBBF24) must be ≥ 4.5:1 on #1E1E1E; got \(ratio)")
+            "Dark SemanticWarning (#F5C242 — F010 warm-tune) must be ≥ 4.5:1 on #1E1E1E; got \(ratio)")
     }
 
     func test_errorLight_meetsAAOnWhite() {
@@ -117,7 +117,7 @@ final class SemanticColorsTests: XCTestCase {
     func test_errorDark_meetsAAOnDarkBg() {
         let ratio = contrast(nscolor(fromHex: Semantic.errorDarkHex), darkBg)
         XCTAssertGreaterThanOrEqual(ratio, 4.5,
-            "Dark SemanticError (#F87171) must be ≥ 4.5:1 on #1E1E1E; got \(ratio)")
+            "Dark SemanticError (#EF5B5B — F010 warm-tune) must be ≥ 4.5:1 on #1E1E1E; got \(ratio)")
     }
 
     /// Regression-pin: ensure we did not paint over the v1.8.0 fallback
