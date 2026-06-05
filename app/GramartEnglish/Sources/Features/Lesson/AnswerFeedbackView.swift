@@ -202,11 +202,11 @@ private struct AnswerRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if isCorrect {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Semantic.success)
                     .accessibilityLabel("Correct answer")
             } else if isChosen {
                 Image(systemName: "xmark")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Semantic.error)
                     .accessibilityLabel("Your answer")
             }
         }

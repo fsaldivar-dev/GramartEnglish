@@ -96,7 +96,7 @@ struct LessonSummaryView: View {
                         .padding(.vertical, 6)
                         .padding(.horizontal, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+                        .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.sm))
                     }
                 }
                 .frame(maxWidth: 540)
