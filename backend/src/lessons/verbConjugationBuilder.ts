@@ -2,15 +2,23 @@ import type { CefrLevel } from '../domain/schemas.js';
 import type { VerbRepository, VerbRow } from '../store/verbRepository.js';
 
 /**
- * F004 (v1.6.0): pure function that builds one `conjugate_pick_form` question
- * from a target verb. The distractor recipe is locked by PO+TL:
+ * F004 (v1.6.0) / F007 (v1.8.0): pure function that builds one
+ * `conjugate_pick_form` question from a target verb. Distractor recipe:
  *
- *   options = shuffle([
- *     correct           = target.simplePast,
- *     over_regularized  = regularize(target.base),        // e.g. "goed" for "go"
- *     base_form         = target.base,                    // e.g. "go"
- *     past_participle   = target.pastParticiple,          // e.g. "gone"
- *   ])
+ *   v1.6.0 original:
+ *     [over_regularized, base, past_participle, +random_other_past_at_level]
+ *
+ *   v1.8.0 (F007): Lucía called this out as a teaching anti-pattern —
+ *     surfacing `goed`/`runed`/`eated` as MCQ options teaches the error
+ *     because every reading of the wrong option leaves an "I saw that
+ *     spelling" trace. Replace it with two more random valid past-form
+ *     distractors. The over-regularized form is STILL generated server-
+ *     side, but only used as a `feedbackHint` when the learner picks/
+ *     types it in a write mode (see `lessonService.submitAnswer`). The
+ *     teaching moment now happens AFTER the wrong commitment, not before.
+ *
+ *   v1.8.0 recipe:
+ *     [correct, base, past_participle, +random_other_past_at_level]
  *
  * When any distractor collides with the correct answer (typical for regular
  * verbs where `over_regularized === simple_past === past_participle ===
@@ -127,9 +135,10 @@ export function buildVerbQuestion(
   const correct = target.simplePast;
 
   // Recipe slots, in order of preference. Filter out anything that collides
-  // with the correct answer or with an earlier slot.
+  // with the correct answer or with an earlier slot. v1.8.0 (F007): the
+  // over-regularized form is intentionally absent — it's reserved for
+  // post-answer `feedbackHint` rendering, not for surfacing as an option.
   const desired: string[] = [
-    overRegularize(target.base),
     target.base,
     target.pastParticiple,
   ];
