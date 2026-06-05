@@ -328,6 +328,14 @@ struct LessonFlowView: View {
                 onSkip: { Task { await vm.skip() } },
                 onExit: onExit
             )
+        case .conjugatePickForm:
+            ConjugationLessonView(
+                question: q,
+                progress: state.progress,
+                onAnswer: { idx in Task { await vm.answer(idx) } },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
         }
     }
 }
