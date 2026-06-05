@@ -171,12 +171,14 @@ final class LessonViewModelTests: XCTestCase {
     func testResumeUsesGetNotPostAndSurfacesBanner() async {
         let store = freshStateStore()
         let vm = makeViewModelWithStore(store)
-        var postCalled = false
+        // Class-wrapped flag — Swift 5.9 strict concurrency rejects capture of
+        // `var` by @Sendable handler. See TestFlag in ListeningLessonViewModelTests.
+        let postCalled = TestFlag()
         TestURLProtocol.handler = { request in
             let path = request.url?.path ?? ""
             let method = request.httpMethod ?? ""
             if method == "POST" && path.hasSuffix("/lessons") {
-                postCalled = true
+                postCalled.value = true
                 XCTFail("Resume must not POST /lessons — that creates a new lesson row")
                 return (500, Data())
             }
@@ -189,7 +191,7 @@ final class LessonViewModelTests: XCTestCase {
         guard case .answering(let state) = vm.phase else {
             return XCTFail("expected answering after resume, got \(vm.phase)")
         }
-        XCTAssertFalse(postCalled)
+        XCTAssertFalse(postCalled.value)
         XCTAssertEqual(state.lessonId, "11111111-1111-4111-8111-111111111111")
         XCTAssertEqual(state.questions.count, 2, "resume returns only remaining questions")
         XCTAssertEqual(state.currentQuestion?.word, "five")
