@@ -1,0 +1,62 @@
+# OpenAPI Delta — Feature 004 Verb Conjugation (v1.6.0 slice)
+#
+# STATUS: MERGED into specs/001-vocabulary-lesson-mvp/contracts/openapi.yaml on 2026-06-05.
+# The canonical spec is now at info.version 1.6.0. This file is a historical
+# record of what F004 v1.6.0 added; do not edit it further. Future F004 work
+# (US2, US3, more tenses) edits the canonical openapi.yaml directly.
+
+components:
+  schemas:
+    LessonMode:
+      type: string
+      enum:
+        - read_pick_meaning
+        - listen_pick_word
+        - listen_pick_meaning
+        - listen_type
+        - write_pick_word
+        - write_type_word
+        - write_fill_gaps
+        - conjugate_pick_form        # NEW v1.6 — F004 US1
+      description: |
+        v1.6 adds one verb-conjugation mode:
+          - conjugate_pick_form: see "Pasado simple de **<es>**", pick the English
+            past form from 4 options. Distractor recipe is
+            [over_regularized, base, past_participle, +1 same-level past]
+            minus collisions. Levels A2 + B1, 60-verb hand-curated corpus.
+
+    # Extended (additive — `verbBase` + `targetTense` are new):
+    LessonQuestion:
+      type: object
+      required: [id, word, options, position]
+      properties:
+        id: { type: string, format: uuid }
+        word:
+          type: string
+          description: |
+            For conjugate_pick_form: the English base form of the verb.
+            (Same field, semantic overload — `word` already meant "the
+            canonical English string for this question".)
+        prompt:
+          type: string
+          description: |
+            For conjugate_pick_form: "Pasado simple de **<spanish_infinitive>**"
+            with markdown emphasis on the Spanish infinitive.
+        verbBase:
+          type: string
+          description: |
+            v1.6+. English base form of the verb (e.g. "go" when the answer
+            is "went"). Populated only for `conjugate_pick_form`.
+        targetTense:
+          type: string
+          enum: [simple_past]
+          description: |
+            v1.6+. Target tense for the question. v1.6.0 ships `simple_past`
+            only; the enum reserves room for `past_participle`, `gerund`,
+            `third_person` in F004 US2+.
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: { type: string }
+        position: { type: integer }

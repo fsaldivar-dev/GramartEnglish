@@ -39,7 +39,11 @@ public final class LessonViewModel: ObservableObject {
                     options: q.options,
                     position: q.position,
                     prompt: q.prompt,
-                    maskedWord: q.maskedWord
+                    maskedWord: q.maskedWord,
+                    verbBase: q.verbBase,
+                    targetTense: q.targetTense,
+                    exampleEs: q.exampleEs,
+                    exampleEn: q.exampleEn
                 )
             }
             let state = LessonState(lessonId: response.lessonId, questions: questions)

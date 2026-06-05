@@ -114,7 +114,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
 
   await app.register(correlationIdPlugin);
   await registerPlacementRoutes(app, { db });
-  await registerLessonRoutes(app, { db });
+  await registerLessonRoutes(app, { db, corpusDir: join(repoRoot, 'data', 'cefr') });
 
   // RAG index: try to load on boot. If absent/mismatched, retain a non-ready
   // index so the route still works (falls back to canonical examples).

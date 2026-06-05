@@ -48,5 +48,12 @@
   { "base": "manage", "pos": "verb", "level": "B1", "spanishOption": "gestionar / lograr", "canonicalDefinition": "To control or organize successfully.", "canonicalExamples": ["She manages a small team."], "sourceTag": "author" },
   { "base": "prefer", "pos": "verb", "level": "B1", "spanishOption": "preferir", "canonicalDefinition": "To like something more than another.", "canonicalExamples": ["I prefer tea to coffee."], "sourceTag": "author" },
   { "base": "prevent", "pos": "verb", "level": "B1", "spanishOption": "prevenir / evitar", "canonicalDefinition": "To stop something from happening.", "canonicalExamples": ["Exercise helps prevent illness."], "sourceTag": "author" },
-  { "base": "satisfied", "pos": "adjective", "level": "B1", "spanishOption": "satisfecho", "canonicalDefinition": "Pleased because something is good enough.", "canonicalExamples": ["I am satisfied with the result."], "sourceTag": "author" }
+  { "base": "satisfied", "pos": "adjective", "level": "B1", "spanishOption": "satisfecho", "canonicalDefinition": "Pleased because something is good enough.", "canonicalExamples": ["I am satisfied with the result."], "sourceTag": "author" },
+  { "base": "meet", "pos": "verb", "level": "B1", "spanishOption": "conocer / encontrarse", "canonicalDefinition": "To come together with someone.", "canonicalExamples": ["We meet every Tuesday."], "sourceTag": "author" },
+  { "base": "send", "pos": "verb", "level": "B1", "spanishOption": "enviar", "canonicalDefinition": "To make something go from one place to another.", "canonicalExamples": ["I send a postcard every summer."], "sourceTag": "author" },
+  { "base": "pay", "pos": "verb", "level": "B1", "spanishOption": "pagar", "canonicalDefinition": "To give money for something.", "canonicalExamples": ["We pay the rent on the first."], "sourceTag": "author" },
+  { "base": "feel", "pos": "verb", "level": "B1", "spanishOption": "sentir", "canonicalDefinition": "To experience an emotion or sensation.", "canonicalExamples": ["I feel happy today."], "sourceTag": "author" },
+  { "base": "keep", "pos": "verb", "level": "B1", "spanishOption": "mantener / quedarse", "canonicalDefinition": "To continue to have or do something.", "canonicalExamples": ["Keep the change."], "sourceTag": "author" },
+  { "base": "understand", "pos": "verb", "level": "B1", "spanishOption": "entender / comprender", "canonicalDefinition": "To grasp the meaning of something.", "canonicalExamples": ["I understand the question."], "sourceTag": "author" },
+  { "base": "wear", "pos": "verb", "level": "B1", "spanishOption": "llevar puesto / usar", "canonicalDefinition": "To have clothing on your body.", "canonicalExamples": ["I wear glasses for reading."], "sourceTag": "author" }
 ]

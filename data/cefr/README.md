@@ -7,6 +7,10 @@ This directory holds the curated vocabulary lists used by GramartEnglish.
 - `a1.json`, `a2.json`, `b1.json`, `b2.json`, `c1.json`, `c2.json` — one file per
   CEFR level, each an array of word entries.
 - `examples/` — optional canonical example sentences per word, keyed by lemma.
+- `verbs.json` — F004 (v1.6.0): hand-curated verb table with conjugation
+  metadata used by `conjugate_pick_form` lessons. Each entry's `base` MUST also
+  appear in the corresponding level JSON above (so `vocabulary_words(id)` exists
+  for the FK on `word_mastery` / `lessons.questions.wordId`).
 
 ## Word entry schema
 
@@ -28,6 +32,37 @@ This directory holds the curated vocabulary lists used by GramartEnglish.
 - `canonicalExamples` — optional array of 0–3 example sentences (author-written
   or sourced from CC-licensed corpora).
 - `sourceTag` — provenance: `cefr-j`, `evp`, `tatoeba`, or `author`.
+
+## Verb entry schema (`verbs.json`)
+
+```json
+{
+  "id": "verb_go",
+  "base": "go",
+  "es": "ir",
+  "level": "A2",
+  "simple_past": "went",
+  "past_participle": "gone",
+  "irregular": true,
+  "audio_base": "go.mp3",
+  "audio_past": "went.mp3"
+}
+```
+
+- `id` — stable verb identifier (`verb_<base>`), used in logs and provenance.
+- `base` — English infinitive (lowercase). Must exist as a `vocabulary_words.base` row.
+- `es` — Spanish infinitive, shown in the prompt "Pasado simple de **<es>**".
+- `level` — conjugation-skill level (A2 or B1 for v1.6.0). Independent of where
+  the word's vocabulary entry lives — e.g. `eat` is an A1 vocab word but its
+  conjugation drill is A2.
+- `simple_past` — canonical English past form (the answer key for `conjugate_pick_form`).
+- `past_participle` — canonical English participle (used as one of the distractors).
+- `irregular` — `true` when `simple_past` is NOT formed by an `-ed` rule.
+- `audio_base` / `audio_past` — filename hints for TTS (forward-compat; not used by v1.6.0).
+
+The v1.6.0 corpus ships **60 verbs**: 40 A2 (20 irregular, 20 regular) + 20 B1
+(10 irregular, 10 regular). See `specs/004-verb-conjugation/data-model.md` for
+the rationale.
 
 ## Sources & licensing
 

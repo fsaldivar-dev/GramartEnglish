@@ -8,6 +8,7 @@ import { WordRepository } from '../store/wordRepository.js';
 import { MasteryRepository } from '../store/masteryRepository.js';
 import { UserRepository } from '../store/userRepository.js';
 import { LessonService } from '../lessons/lessonService.js';
+import { loadVerbCorpus } from '../store/verbRepository.js';
 
 const StartRequest = z.object({
   level: CefrLevel,
@@ -40,6 +41,10 @@ const SkipRequest = z.object({
 
 export interface LessonRouteDeps {
   db: Database.Database;
+  /** v1.6+. Path to `data/cefr/` so the verb corpus for
+   *  `conjugate_pick_form` can be loaded. Tests that don't exercise
+   *  conjugation modes may omit this. */
+  corpusDir?: string;
 }
 
 export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRouteDeps): Promise<void> {
@@ -48,11 +53,13 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
   const wordRepo = new WordRepository(deps.db);
   const masteryRepo = new MasteryRepository(deps.db);
   const userRepo = new UserRepository(deps.db);
+  const verbRepo = deps.corpusDir ? loadVerbCorpus(deps.corpusDir, wordRepo) : undefined;
   const service = new LessonService({
     lessons: lessonRepo,
     questions: questionRepo,
     words: wordRepo,
     mastery: masteryRepo,
+    ...(verbRepo ? { verbs: verbRepo } : {}),
   });
 
   app.post('/v1/lessons', async (req, reply) => {
