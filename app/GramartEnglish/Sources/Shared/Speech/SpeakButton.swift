@@ -40,13 +40,19 @@ struct SpeakButton: View {
     }
 
     var body: some View {
+        // v1.9.0 polish (Priya v1.10 #1). When the global mute is on, dim the
+        // speaker glyph so the user has a visual trust signal that audio
+        // won't fire — explicit taps still bypass mute (v1.4.1 F3), but the
+        // icon should warn before they tap. Reading the shared service in
+        // the view body picks up flips driven by `MuteToggleButton`.
+        let isMuted = SpeechService.shared.isMuted
         let button = Button {
             // v1.4.1 F3: explicit user tap → bypass the mute toggle.
             SpeechService.shared.speakEnglish(text, rate: rate, isUserInitiated: true)
         } label: {
             Image(systemName: symbol)
                 .font(.system(size: size))
-                .foregroundStyle(.tint)
+                .foregroundStyle(isMuted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .padding(8)
                 .contentShape(Circle())
         }
