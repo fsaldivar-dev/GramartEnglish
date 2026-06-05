@@ -86,6 +86,30 @@ final class LessonSummaryResumeCardTests: XCTestCase {
         XCTAssertNoThrow(_ = view.body)
     }
 
+    // MARK: - F010 v1.11.0 patch (Priya Polish A)
+    // Pin the "Pregunta X de Y" rendering vs. the legacy "Pregunta X"
+    // fallback. The snapshot now carries `totalCount` so the leftover
+    // CTA renders the preferred form when it can.
+
+    func test_resumeCard_subtitle_rendersXdeY_whenTotalCountIsPresent() {
+        let card = ResumeLessonCard(currentQuestionIndex: 3, totalCount: 10, onResume: {})
+        XCTAssertEqual(card.subtitle, "Pregunta 4 de 10",
+            "zero-based index 3 + total 10 → 'Pregunta 4 de 10'")
+    }
+
+    func test_resumeCard_subtitle_fallsBackToShortForm_whenTotalCountIsNil() {
+        let card = ResumeLessonCard(currentQuestionIndex: 3, totalCount: nil, onResume: {})
+        XCTAssertEqual(card.subtitle, "Pregunta 4",
+            "nil totalCount (pre-v1.11.0 snapshot) → short fallback")
+    }
+
+    func test_resumeCard_subtitle_fallsBackToShortForm_whenTotalCountIsZero() {
+        // Defensive: a zero total is meaningless — fall back rather than
+        // rendering "Pregunta 4 de 0".
+        let card = ResumeLessonCard(currentQuestionIndex: 3, totalCount: 0, onResume: {})
+        XCTAssertEqual(card.subtitle, "Pregunta 4")
+    }
+
     func test_onResumeLesson_callback_isWiredIndependently() {
         var resumeCount = 0
         var startedAnotherCount = 0

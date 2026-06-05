@@ -128,9 +128,14 @@ struct LessonSummaryView: View {
                 // F010 Item 3 (v1.11.0). Above the primary CTAs so the
                 // returning learner reads it before clicking "empezar
                 // otra lección" and dropping their in-flight progress.
+                // F010 v1.11.0 patch (Priya Polish A). `totalCount` was
+                // hardcoded to nil until the snapshot started carrying the
+                // lesson length — the subtitle now renders the preferred
+                // "Pregunta X de Y" form when the snapshot is from a
+                // v1.11.0+ build (falls back to "Pregunta X" otherwise).
                 ResumeLessonCard(
                     currentQuestionIndex: snap.currentQuestionIndex,
-                    totalCount: nil,
+                    totalCount: snap.totalCount,
                     onResume: onResumeLesson
                 )
             }

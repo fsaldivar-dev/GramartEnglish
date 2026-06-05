@@ -44,7 +44,10 @@ struct ResumeLessonCard: View {
         .accessibilityLabel("Continuar lección anterior. \(subtitle)")
     }
 
-    private var subtitle: String {
+    /// Exposed (internal) for tests — pinning "Pregunta X de Y" vs
+    /// "Pregunta X" rendering at the property level keeps the format
+    /// from drifting into the view body.
+    var subtitle: String {
         // Snapshot stores currentQuestionIndex (zero-based) but not the
         // lesson length on its own — when the server-side total is not
         // available (resume snapshot pre-load), fall back to a shorter
