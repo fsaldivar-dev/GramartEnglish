@@ -27,8 +27,13 @@ remains untouched. The view does not surface a hint affordance for
    gaps and letters align visually.
 2. `.minimumScaleFactor(0.7)` so long words still fit on narrow trait
    collections without truncation.
-3. VoiceOver label replaces every `_` with `" blank "` (e.g.
-   `w__th_r` → `"Completa la palabra: w blank blank th blank r"`).
+3. VoiceOver label replaces every `_` with `" espacio "` (e.g.
+   `w__th_r` → `"Completa la palabra: w espacio espacio th espacio r"`).
+   The Spanish word is intentional: the label prefix is Spanish, so the
+   Spanish-locale VoiceOver synthesizer (es-MX) would otherwise pronounce
+   the English token `"blank"` awkwardly for hispanohablantes. PO+TL
+   originally locked `"blank"`; Marisol's review on PR #7 caught the
+   regression and we re-locked to `"espacio"` (Principle VII).
 4. VoiceOver hint: `"Escribe la palabra completa en inglés"`.
 5. `.accessibilityElement(children: .combine)` on the scaffold container so
    VoiceOver doesn't fragment the prompt + mask into multiple stops.

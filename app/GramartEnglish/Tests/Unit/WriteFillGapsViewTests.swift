@@ -35,10 +35,12 @@ final class WriteFillGapsViewTests: XCTestCase {
         XCTAssertEqual(view.question.prompt, "clima / tiempo")
     }
 
-    /// VoiceOver must read each underscore as " blank " so the spelling cue
-    /// is intelligible. Pinned exactly per the PO+TL a11y contract.
-    func testFillGapsAccessibilityLabelReplacesUnderscoresWithBlank() {
+    /// VoiceOver must read each underscore as " espacio " so the spelling
+    /// cue is intelligible to hispanohablantes (the UI prefix is Spanish, so
+    /// the Spanish-locale synthesizer must not be handed the English token
+    /// "blank"). Pinned exactly per the PO+TL a11y contract (Principle VII).
+    func testFillGapsAccessibilityLabelReplacesUnderscoresWithEspacio() {
         let label = WritingLessonView.fillGapsAccessibilityLabel(for: "w__th_r")
-        XCTAssertEqual(label, "Completa la palabra: w blank blank th blank r")
+        XCTAssertEqual(label, "Completa la palabra: w espacio espacio th espacio r")
     }
 }
