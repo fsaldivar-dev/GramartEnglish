@@ -115,6 +115,11 @@ struct ProgressHeader: View {
     let current: Int
     let total: Int
 
+    private var percent: Int {
+        guard total > 0 else { return 0 }
+        return Int((Double(current) / Double(total)) * 100.0)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             Text("Pregunta \(current) de \(total)")
@@ -123,7 +128,11 @@ struct ProgressHeader: View {
             ProgressView(value: Double(current), total: Double(total))
                 .progressViewStyle(.linear)
                 .frame(maxWidth: 540)
+                .accessibilityValue(Text("\(percent) por ciento"))
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Progreso: pregunta \(current) de \(total)")
+        .accessibilityValue(Text("\(percent) por ciento"))
     }
 }
 
