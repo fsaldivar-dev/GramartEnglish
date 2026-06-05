@@ -37,6 +37,9 @@ struct ReadyFlowView: View {
     @State private var showSettings: Bool = false
     @State private var settingsPresentationId: Int = 0
     @State private var showMyWords: Bool = false
+    /// F011 Item 3 (v1.12.0). Priya's cheatsheet sheet — toggled by the
+    /// global ⌘`/` shortcut wired below via a zero-size hidden button.
+    @State private var showingCheatsheet: Bool = false
     private let client: BackendClient
     private let appVersion: String
 
@@ -128,6 +131,18 @@ struct ReadyFlowView: View {
             OllamaStatusIndicator(model: statusModel)
                 .padding(.top, 12)
                 .padding(.trailing, 16)
+
+            // F011 Item 3 (v1.12.0). Hidden trigger for the ⌘/ keyboard
+            // shortcut — SwiftUI requires a focusable control to host
+            // `.keyboardShortcut`, so we render a zero-size button and
+            // hide it from VoiceOver (the cheatsheet itself is
+            // discoverable from the Help menu wiring in
+            // `GramartEnglishApp`).
+            Button("Atajos") { showingCheatsheet.toggle() }
+                .keyboardShortcut("/", modifiers: .command)
+                .frame(width: 0, height: 0)
+                .opacity(0)
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { statusModel.startPolling(); await initialPhase() }
@@ -164,6 +179,11 @@ struct ReadyFlowView: View {
         .sheet(isPresented: $showMyWords) {
             MyWordsView(progress: home.progress, onClose: { showMyWords = false })
                 .task { await home.refresh() }
+        }
+        // F011 Item 3 (v1.12.0). Cheatsheet sheet — light, no model,
+        // dismisses via the inline button or Esc (`.cancelAction`).
+        .sheet(isPresented: $showingCheatsheet) {
+            ShortcutsCheatsheetView(onClose: { showingCheatsheet = false })
         }
     }
 
