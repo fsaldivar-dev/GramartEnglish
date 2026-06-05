@@ -43,6 +43,7 @@ struct WelcomeView: View {
             }
             Spacer()
         }
-        .padding(32)
+        // F011 (v1.12.0). Padding-literal sweep — 32pt → Spacing.xl.
+        .padding(Spacing.xl)
     }
 }

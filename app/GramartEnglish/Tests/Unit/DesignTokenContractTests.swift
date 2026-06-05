@@ -129,6 +129,14 @@ final class DesignTokenContractTests: XCTestCase {
         let tintLiteral = try NSRegularExpression(pattern: #"\.tint\.opacity\(0\.\d+\)"#)
         let rawColor = try NSRegularExpression(
             pattern: #"\.foregroundStyle\(\.(green|red|orange)\)"#)
+        // F011 (v1.12.0). Mariana's padding-literal sweep — `.padding(N)` and
+        // `.padding(N, ...)` with a numeric first argument must route through
+        // `Spacing.*`. We deliberately do NOT flag `.padding(.top, 8)` (named
+        // edge, not a bare number) — those round-trip to Spacing.xs in a
+        // follow-up pass. The current rule pins the bare-number sites that
+        // v1.11's review caught.
+        let paddingLiteral = try NSRegularExpression(
+            pattern: #"\.padding\(\s*\d+\s*[,)]"#)
         var offenders: [String] = []
         for case let url as URL in enumerator where url.pathExtension == "swift" {
             let text = try String(contentsOf: url, encoding: .utf8)
@@ -146,6 +154,9 @@ final class DesignTokenContractTests: XCTestCase {
                 }
                 if rawColor.firstMatch(in: line, range: range) != nil {
                     offenders.append("\(rel):\(i + 1) raw color → \(trimmed)")
+                }
+                if paddingLiteral.firstMatch(in: line, range: range) != nil {
+                    offenders.append("\(rel):\(i + 1) .padding literal → \(trimmed)")
                 }
             }
         }
