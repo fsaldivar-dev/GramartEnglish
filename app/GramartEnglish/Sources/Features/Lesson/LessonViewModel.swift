@@ -33,7 +33,14 @@ public final class LessonViewModel: ObservableObject {
         do {
             let response = try await client.startLesson(level: level, mode: mode.rawValue)
             let questions = response.questions.map { q in
-                LessonQuestion(id: q.id, word: q.word, options: q.options, position: q.position, prompt: q.prompt)
+                LessonQuestion(
+                    id: q.id,
+                    word: q.word,
+                    options: q.options,
+                    position: q.position,
+                    prompt: q.prompt,
+                    maskedWord: q.maskedWord
+                )
             }
             let state = LessonState(lessonId: response.lessonId, questions: questions)
             questionShownAt = .now
