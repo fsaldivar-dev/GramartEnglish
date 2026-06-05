@@ -101,7 +101,14 @@ struct ReadyFlowView: View {
                     level: level,
                     mode: mode,
                     resumeId: resumeId,
-                    onExit: { Task { await goHome(level: level) } }
+                    onExit: { Task { await goHome(level: level) } },
+                    // F010 Item 3 (v1.11.0). Resume CTA from LessonSummaryView
+                    // — phase-hop straight into the leftover lesson rather
+                    // than routing through Home.
+                    onResumeLeftover: { snap in
+                        let resolvedMode = LessonMode(rawValue: snap.mode) ?? .readPickMeaning
+                        phase = .lesson(level: snap.level, mode: resolvedMode, resumeId: snap.lessonId)
+                    }
                 )
             }
 
@@ -216,7 +223,15 @@ struct LessonFlowView: View {
     @StateObject private var vm: LessonViewModel
     @State private var examplesWord: ExamplesContext?
     @State private var latestPerModeMastered: [String: Int]?
+    /// F010 Item 3 (v1.11.0). Snapshot probed when the summary appears
+    /// — if a DIFFERENT in-flight lesson is still on disk, we surface
+    /// the "Continuar lección anterior" CTA on the summary screen.
+    @State private var leftoverSnapshot: LessonStateSnapshot?
     let onExit: () -> Void
+    /// F010 Item 3 (v1.11.0). Routes the resume CTA back through
+    /// RootFlowView so the phase flips to `.lesson(..., resumeId: …)`
+    /// with the leftover snapshot's identifiers.
+    let onResumeLeftover: (LessonStateSnapshot) -> Void
     private let client: BackendClient
     private let level: String
     private let mode: LessonMode
@@ -241,13 +256,15 @@ struct LessonFlowView: View {
         level: String,
         mode: LessonMode = .readPickMeaning,
         resumeId: String? = nil,
-        onExit: @escaping () -> Void
+        onExit: @escaping () -> Void,
+        onResumeLeftover: @escaping (LessonStateSnapshot) -> Void = { _ in }
     ) {
         self.client = client
         self.level = level
         self.mode = mode
         self.resumeId = resumeId
         self.onExit = onExit
+        self.onResumeLeftover = onResumeLeftover
         _vm = StateObject(wrappedValue: LessonViewModel(client: client, level: level, mode: mode))
     }
 
@@ -352,6 +369,7 @@ struct LessonFlowView: View {
                     summary: summary,
                     mode: mode,
                     perModeMastered: latestPerModeMastered,
+                    resumableSnapshot: leftoverSnapshot,
                     // F008 Item 4 (v1.9.0). Priya flagged: both buttons used
                     // to wire to `onExit`, which routed the learner through
                     // Home and re-cost a click to start the next lesson —
@@ -363,7 +381,11 @@ struct LessonFlowView: View {
                         latestPerModeMastered = nil
                         Task { await vm.start(resumeId: nil) }
                     },
-                    onBackHome: onExit
+                    onBackHome: onExit,
+                    onResumeLesson: {
+                        guard let snap = leftoverSnapshot else { return }
+                        onResumeLeftover(snap)
+                    }
                 )
                 .task {
                     // Persist the mode just played so next launch defaults to it.
@@ -372,6 +394,11 @@ struct LessonFlowView: View {
                     if let prog = try? await client.progress() {
                         latestPerModeMastered = prog.perModeMastered
                     }
+                    // F010 Item 3 (v1.11.0). Probe the snapshot store; the
+                    // CTA only fires when the snapshot is for a DIFFERENT
+                    // lesson than the one we just finished (the store
+                    // visibility predicate lives on LessonSummaryView).
+                    leftoverSnapshot = LessonStateStore.shared.load()
                 }
             case .failed(let message):
                 ScaffoldFailedView(message: message)
