@@ -3,8 +3,10 @@ import type { LessonRepository, LessonRow } from '../store/lessonRepository.js';
 import type { QuestionRepository, QuestionRow } from '../store/questionRepository.js';
 import type { WordRepository } from '../store/wordRepository.js';
 import type { MasteryRepository } from '../store/masteryRepository.js';
+import type { VerbRepository } from '../store/verbRepository.js';
 import { LESSON_SIZE, selectLessonWords } from './wordSelector.js';
 import { buildOptions } from './distractorBuilder.js';
+import { buildVerbQuestion } from './verbConjugationBuilder.js';
 import { levenshteinAtMost } from './levenshtein.js';
 import { maskWord } from './gapMasker.js';
 
@@ -15,6 +17,9 @@ export interface LessonServiceDeps {
   questions: QuestionRepository;
   words: WordRepository;
   mastery: MasteryRepository;
+  /** v1.6+. Optional — required only when the server is configured to serve
+   *  `conjugate_pick_form` lessons. Other modes do not touch this. */
+  verbs?: VerbRepository;
 }
 
 export interface ClientLessonQuestion {
@@ -34,6 +39,12 @@ export interface ClientLessonQuestion {
    *  lesson row stays mode=`write_fill_gaps` so mastery accounting is per
    *  the chosen axis (FR-007). */
   maskedWord?: string;
+  /** v1.6+. Populated for `conjugate_pick_form` only — English base form of
+   *  the verb (e.g. "go" when the answer is "went"). */
+  verbBase?: string;
+  /** v1.6+. Populated for `conjugate_pick_form` only — target tense string
+   *  (`"simple_past"` for v1.6.0). */
+  targetTense?: 'simple_past';
 }
 
 export interface StartLessonResult {
@@ -73,6 +84,12 @@ export class LessonService {
 
   startLesson(input: { userId: string; level: CefrLevel; correlationId: string; mode?: LessonMode; seed?: number }): StartLessonResult {
     const mode: LessonMode = input.mode ?? 'read_pick_meaning';
+    // v1.6 F004 US1: conjugate_pick_form takes a verb-corpus path. Mastery
+    // axis is still (userId, wordId, mode); wordId resolves to the verb's
+    // vocabulary_words row via verbs.json provenance.
+    if (mode === 'conjugate_pick_form') {
+      return this.startConjugationLesson({ ...input, mode });
+    }
     const words = selectLessonWords(input.userId, input.level, mode, this.deps, input.seed !== undefined ? { seed: input.seed } : {});
     if (words.length < LESSON_SIZE) {
       throw new Error(
@@ -127,6 +144,75 @@ export class LessonService {
         }
       }
       return base;
+    });
+    return { lesson, questions: clientQuestions };
+  }
+
+  /** v1.6 F004 US1 — conjugate_pick_form lesson assembly. Picks `LESSON_SIZE`
+   *  verbs at the target level, builds an MCQ per verb via
+   *  `verbConjugationBuilder`, persists rows keyed by the verb's wordId so
+   *  the existing answer + mastery pipeline applies unchanged. */
+  private startConjugationLesson(input: {
+    userId: string;
+    level: CefrLevel;
+    correlationId: string;
+    mode: 'conjugate_pick_form';
+    seed?: number;
+  }): StartLessonResult {
+    if (!this.deps.verbs) {
+      throw new Error('verb corpus not configured (conjugate_pick_form requires VerbRepository)');
+    }
+    const verbsRepo = this.deps.verbs;
+    const pool = verbsRepo.atLevel(input.level);
+    if (pool.length < LESSON_SIZE) {
+      throw new Error(
+        `Not enough verbs at ${input.level} to start a ${LESSON_SIZE}-question lesson (have ${pool.length})`,
+      );
+    }
+    // Seeded shuffle for deterministic tests.
+    const seedSource = input.seed ?? Math.floor(Math.random() * 2 ** 32);
+    let s = seedSource >>> 0;
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      const j = s % (i + 1);
+      [shuffled[i]!, shuffled[j]!] = [shuffled[j]!, shuffled[i]!];
+    }
+    const chosenVerbs = shuffled.slice(0, LESSON_SIZE);
+
+    const lesson = this.deps.lessons.create({
+      userId: input.userId,
+      level: input.level,
+      mode: input.mode,
+      correlationId: input.correlationId,
+    });
+
+    const newQuestions = chosenVerbs.map((verb, position) => {
+      const built = buildVerbQuestion(verb, verbsRepo, {
+        level: input.level,
+        seed: seedSource + position,
+      });
+      return {
+        lessonId: lesson.id,
+        position,
+        wordId: verb.wordId,
+        options: built.options,
+        correctIndex: built.correctIndex,
+      };
+    });
+    const rows = this.deps.questions.createMany(newQuestions);
+
+    const clientQuestions: ClientLessonQuestion[] = rows.map((r, idx) => {
+      const verb = chosenVerbs[idx]!;
+      return {
+        id: r.id,
+        word: verb.base, // English base — TTS plays this; client shows Spanish prompt
+        options: r.options,
+        position: r.position,
+        prompt: `Pasado simple de **${verb.es}**`,
+        verbBase: verb.base,
+        targetTense: 'simple_past' as const,
+      };
     });
     return { lesson, questions: clientQuestions };
   }
@@ -262,16 +348,26 @@ export class LessonService {
         },
       };
     }
+    const lessonMode: LessonMode = (lesson.mode as LessonMode | undefined) ?? 'read_pick_meaning';
     const remaining = questions
       .filter((q) => q.selectedIndex === null)
-      .map((q) => {
+      .map((q): ClientLessonQuestion => {
         const word = this.deps.words.byId(q.wordId);
-        return {
+        const base: ClientLessonQuestion = {
           id: q.id,
           word: word?.base ?? '',
           options: q.options,
           position: q.position,
         };
+        if (lessonMode === 'conjugate_pick_form' && this.deps.verbs) {
+          const verb = this.deps.verbs.lookupByWordId(q.wordId);
+          if (verb) {
+            base.prompt = `Pasado simple de **${verb.es}**`;
+            base.verbBase = verb.base;
+            base.targetTense = 'simple_past';
+          }
+        }
+        return base;
       });
     return {
       kind: 'in_progress',
