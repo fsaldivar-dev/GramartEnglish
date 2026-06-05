@@ -23,13 +23,18 @@ struct LessonSummaryView: View {
         self.onBackHome = onBackHome
     }
 
-    private func badge(for mode: LessonMode) -> String {
+    /// F007 (v1.8.0). Emoji → SF Symbol migration. Emojis don't honor the
+    /// system tint and read inconsistently across VoiceOver locales
+    /// ("partially open book" vs "libro abierto"). SF Symbols inherit the
+    /// containing `.foregroundStyle` and have first-class `.accessibilityLabel`
+    /// support.
+    private func badgeSymbol(for mode: LessonMode) -> String {
         switch mode {
-        case .readPickMeaning: return "📖"
-        case .listenPickWord, .listenPickMeaning: return "👂"
-        case .listenType: return "🎧"
-        case .writePickWord, .writeTypeWord, .writeFillGaps: return "✏️"
-        case .conjugatePickForm: return "🔁"
+        case .readPickMeaning: return "book.fill"
+        case .listenPickWord, .listenPickMeaning: return "ear.fill"
+        case .listenType: return "headphones"
+        case .writePickWord, .writeTypeWord, .writeFillGaps: return "pencil"
+        case .conjugatePickForm: return "arrow.triangle.2.circlepath"
         }
     }
 
@@ -44,8 +49,13 @@ struct LessonSummaryView: View {
             Spacer()
 
             VStack(spacing: 8) {
+                // F007 (v1.8.0). Dynamic Type fix — `.largeTitle`-relative
+                // font with `minimumScaleFactor(0.5)` instead of the hardcoded
+                // 80pt that overflowed at `accessibility5`.
                 Text("\(summary.score) / \(summary.total)")
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded))
+                    .fontWeight(.bold)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(.tint)
                     .accessibilityLabel("Puntuación: \(summary.score) de \(summary.total)")
                 Text(tone)
@@ -54,12 +64,12 @@ struct LessonSummaryView: View {
             }
 
             HStack(spacing: 24) {
-                summaryStat("Correctas", value: summary.score, color: .green, icon: "checkmark.circle.fill")
+                summaryStat("Correctas", value: summary.score, color: Semantic.success, icon: "checkmark.circle.fill")
                 if summary.skipped > 0 {
-                    summaryStat("No sabía", value: summary.skipped, color: .orange, icon: "questionmark.circle.fill")
+                    summaryStat("No sabía", value: summary.skipped, color: Semantic.warning, icon: "questionmark.circle.fill")
                 }
                 if summary.wrong > 0 {
-                    summaryStat("Erradas", value: summary.wrong, color: .red, icon: "xmark.circle.fill")
+                    summaryStat("Erradas", value: summary.wrong, color: Semantic.error, icon: "xmark.circle.fill")
                 }
             }
             .padding(.vertical, 4)
@@ -75,7 +85,7 @@ struct LessonSummaryView: View {
                     ForEach(summary.missedWords) { missed in
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Image(systemName: missed.outcome == .skipped ? "questionmark.circle" : "xmark.circle")
-                                .foregroundStyle(missed.outcome == .skipped ? Color.orange : Color.red)
+                                .foregroundStyle(missed.outcome == .skipped ? Semantic.warning : Semantic.error)
                                 .imageScale(.small)
                             Text(missed.word)
                                 .font(.system(.body, design: .monospaced).weight(.semibold))
@@ -120,7 +130,12 @@ struct LessonSummaryView: View {
                     let count = counts[m.rawValue] ?? 0
                     let isCurrent = m == mode
                     HStack(spacing: 6) {
-                        Text(badge(for: m)).font(.title3)
+                        // F007 (v1.8.0). Hierarchical SF Symbol → respects
+                        // the system tint and reads as "icono <name>" in
+                        // Spanish VoiceOver.
+                        Image(systemName: badgeSymbol(for: m))
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
                         Text("\(count)")
                             .font(.system(.body, design: .rounded).weight(.semibold))
                     }

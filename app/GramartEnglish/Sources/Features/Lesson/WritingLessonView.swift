@@ -174,8 +174,14 @@ struct WritingLessonView: View {
     private var spanishPromptHero: some View {
         let prompt = question.prompt ?? question.word
         VStack(spacing: 6) {
+            // F007 (v1.8.0). Dynamic Type fix — `.largeTitle`-relative font
+            // with `minimumScaleFactor(0.5)` instead of the hardcoded 44pt
+            // that overflowed at `accessibility5` and clipped long Spanish
+            // glosses.
             Text(prompt)
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
+                .font(.system(.largeTitle, design: .rounded))
+                .fontWeight(.semibold)
+                .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityLabel("Significado en español: \(prompt)")
