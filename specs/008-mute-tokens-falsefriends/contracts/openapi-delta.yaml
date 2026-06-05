@@ -1,0 +1,27 @@
+# F008 openapi delta — applied to specs/001-vocabulary-lesson-mvp/contracts/openapi.yaml
+
+info:
+  version: 1.9.0   # was 1.8.0
+
+components:
+  schemas:
+    LessonQuestion:
+      properties:
+        # ADDED in v1.9.0:
+        falseFriendEs:
+          type: string
+          description: |
+            v1.9.0 (F008 Item 3). Optional Spanish warning surfaced when
+            the target word has a high-frequency Spanish look-alike with
+            a different meaning (e.g. `realize` → `"OJO: no es 'realizar'
+            (do/carry out)"`). Populated on every mode the belt word
+            appears in (read/listen/write/conjugate), not just one. The
+            client renders it as a warning chip in the post-answer
+            feedback panel so the disambiguation lands at the moment of
+            recall, not preemptively. Absent for the ~98% of words without
+            a belt entry; clients MUST tolerate its absence.
+
+    # AnswerResponse.feedbackHint description tightened (v1.9.0):
+    # The over-regularization template now includes the literal
+    # "**de hispanohablantes**" so the L1-transfer pattern is named.
+    # The schema shape is unchanged.
