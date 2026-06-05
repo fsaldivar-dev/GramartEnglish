@@ -11,17 +11,28 @@ export interface BuiltOptions {
  * Picks the option-text axis for a given mode:
  *   - read_pick_meaning, listen_pick_meaning → Spanish meaning (`spanishOption`)
  *   - listen_pick_word                       → English word (`base`)
- *   - listen_type                            → English word (used internally; the
- *     view ignores `options` and shows a text field instead).
+ *   - listen_type                            → English word (typed view ignores
+ *     options but the option-text axis still drives correctness)
+ *   - write_pick_word, write_type_word, write_fill_gaps → English word
+ *     (F003: Spanish goes in `prompt`, not in options)
  */
 function optionTextFor(word: VocabularyWordRow, mode: LessonMode): string {
   switch (mode) {
     case 'listen_pick_word':
     case 'listen_type':
+    case 'write_pick_word':
+    case 'write_type_word':
+    case 'write_fill_gaps':
       return word.base;
     case 'read_pick_meaning':
     case 'listen_pick_meaning':
       return word.spanishOption;
+    case 'conjugate_pick_form':
+      // distractorBuilder is the legacy vocabulary path — conjugate_pick_form
+      // is routed through verbConjugationBuilder before reaching here. If we
+      // ever do hit this branch it's a programming error; emit the verb base
+      // as a defensive fallback so the lesson at least renders.
+      return word.base;
   }
 }
 

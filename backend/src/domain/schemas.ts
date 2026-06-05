@@ -8,17 +8,30 @@ export const LessonMode = z.enum([
   'listen_pick_word',
   'listen_pick_meaning',
   'listen_type',
+  'write_pick_word',
+  'write_type_word',
+  'write_fill_gaps',
+  'conjugate_pick_form',
 ]);
 export type LessonMode = z.infer<typeof LessonMode>;
 
-/** Modes shipped in feature 002. Modes that exist as enum values but are not in
- *  this list are "coming soon" and excluded from `modeRecommender` candidates. */
+/** Modes shipped in v1.6 (F004 US1 adds `conjugate_pick_form`). All eight
+ *  modes are live and eligible for `modeRecommender`'s argmax(pendingWords). */
 export const SHIPPED_MODES: readonly LessonMode[] = [
   'read_pick_meaning',
   'listen_pick_word',
   'listen_pick_meaning',
   'listen_type',
+  'write_pick_word',
+  'write_type_word',
+  'write_fill_gaps',
+  'conjugate_pick_form',
 ];
+
+/** Conjugation modes — Spanish prompt "Pasado simple de <es>" → pick English form.
+ *  Mastery axis is the existing (userId, wordId, mode); `wordId` resolves to the
+ *  verb's `vocabulary_words` row by `base`. */
+export const CONJUGATION_MODES: readonly LessonMode[] = ['conjugate_pick_form'];
 
 /** Listening modes — auto-play TTS on appear, reveal re-speaks (FR-006, FR-012). */
 export const LISTENING_MODES: readonly LessonMode[] = [
@@ -27,12 +40,27 @@ export const LISTENING_MODES: readonly LessonMode[] = [
   'listen_type',
 ];
 
+/** Writing modes — Spanish prompt on screen, English answer. Options or typed. */
+export const WRITING_MODES: readonly LessonMode[] = [
+  'write_pick_word',
+  'write_type_word',
+  'write_fill_gaps',
+];
+
 export function isListeningMode(mode: LessonMode): boolean {
   return LISTENING_MODES.includes(mode);
 }
 
+export function isWritingMode(mode: LessonMode): boolean {
+  return WRITING_MODES.includes(mode);
+}
+
 export function isTypedMode(mode: LessonMode): boolean {
-  return mode === 'listen_type';
+  return mode === 'listen_type' || mode === 'write_type_word' || mode === 'write_fill_gaps';
+}
+
+export function isConjugationMode(mode: LessonMode): boolean {
+  return CONJUGATION_MODES.includes(mode);
 }
 
 export const Uuid = z.string().uuid();
@@ -91,6 +119,19 @@ export const LessonQuestion = z.object({
   word: z.string(),
   options: z.array(z.string()).length(4),
   position: z.number().int().nonnegative(),
+  /** v1.6+. For `conjugate_pick_form`: English base form of the verb being
+   *  conjugated (e.g. "go" when the answer is "went"). Omitted for other modes. */
+  verbBase: z.string().optional(),
+  /** v1.6+. For `conjugate_pick_form`: target tense. v1.6.0 ships only
+   *  "simple_past"; the field is reserved for additional tenses in later
+   *  releases. Omitted for other modes. */
+  targetTense: z.enum(['simple_past']).optional(),
+  /** v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only: Spanish
+   *  example sentence with `___` slot — anchors tense for learners. */
+  exampleEs: z.string().optional(),
+  /** v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only: English
+   *  translation with the verb already conjugated. */
+  exampleEn: z.string().optional(),
 });
 
 export const LessonStartResponse = z.object({

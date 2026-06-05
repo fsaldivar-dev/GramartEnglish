@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.2.0
+  version: 1.6.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -93,12 +93,20 @@ components:
         - listen_pick_word
         - listen_pick_meaning
         - listen_type
+        - write_pick_word
+        - write_type_word
+        - write_fill_gaps
+        - conjugate_pick_form
       description: |
-        The mode a lesson is played in (added in v1.2.0 / Feature 002).
-          - read_pick_meaning: MVP mode (see English word in context, pick Spanish meaning)
-          - listen_pick_word: hear audio, pick English word from 4 written options
-          - listen_pick_meaning: hear audio, pick Spanish meaning from 4 options
-          - listen_type: hear audio, type the word (Levenshtein ≤ 1 tolerated)
+        The mode a lesson is played in.
+          - read_pick_meaning   (v1.0+): see English word in context, pick Spanish meaning
+          - listen_pick_word    (v1.2+): hear audio, pick English word from 4 options
+          - listen_pick_meaning (v1.2+): hear audio, pick Spanish meaning from 4 options
+          - listen_type         (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
+          - write_pick_word     (v1.3+): see Spanish meaning, pick English word from 4 options
+          - write_type_word     (v1.3+): see Spanish meaning, type the English word
+          - write_fill_gaps     (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters. Server returns `maskedWord` for every question. Words ≤ 3 letters auto-promote to a first-letter scaffold (e.g. `eat` → `e__`, `go` → `g_`); mode stays write_fill_gaps for mastery axis purity (v1.5.1+).
+          - conjugate_pick_form (v1.6+): see "Pasado simple de **<es>**", pick the English past form from 4 options. Distractor recipe: [over_regularized, base, past_participle, +1 same-level past] minus collisions with the answer. F004 US1; v1.6.0 ships simple_past only, levels A2 + B1, 60-verb hand-curated corpus.
     LessonStartRequest:
       type: object
       required: [level]
@@ -112,13 +120,62 @@ components:
       required: [id, word, options, position]
       properties:
         id: { type: string, format: uuid }
-        word: { type: string }
+        word:
+          type: string
+          description: |
+            Canonical English word. Used for TTS playback and as the answer
+            key for typed modes. ALWAYS present.
+        prompt:
+          type: string
+          description: |
+            v1.3+. Spanish meaning the client renders as the question stimulus
+            for write modes (`write_pick_word`, `write_type_word`,
+            `write_fill_gaps`). Absent for read + listen modes.
+        maskedWord:
+          type: string
+          description: |
+            Scaffolded English word with underscores in removed positions
+            (e.g. `w__th_r`). v1.5.0+ populated for all `write_fill_gaps`
+            questions whose target word has length > 3 using vowels-first
+            masking. v1.5.1+ also populated for short words (≤ 3 letters)
+            using a first-letter anchor scaffold (e.g. `eat` → `e__`, `go`
+            → `g_`). Absent only for the defensive 1-letter edge case (not
+            represented in the production corpus).
         options:
           type: array
           minItems: 4
           maxItems: 4
           items: { type: string }
         position: { type: integer }
+        verbBase:
+          type: string
+          description: |
+            v1.6+. Populated only for `conjugate_pick_form` — English base form
+            of the verb being conjugated (e.g. "go" when the answer is "went").
+        targetTense:
+          type: string
+          enum: [simple_past]
+          description: |
+            v1.6+. Populated only for `conjugate_pick_form`. v1.6.0 ships
+            `simple_past` only; the enum reserves room for additional tenses
+            (`past_participle`, `gerund`, `third_person`) in future releases.
+        exampleEs:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            Spanish example sentence with `___` marking the verb slot
+            (e.g. "Ayer ___ tacos."). Disambiguates tenses Spanish
+            distinguishes (preterite vs imperfect) but English collapses
+            (both → "ate"). Rendered below the prompt header in a
+            secondary style so it supports — doesn't compete with — the
+            hero infinitive.
+        exampleEn:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            English translation of `exampleEs` with the verb already
+            conjugated. The client reveals it after the user answers as
+            reinforcement, never before as a hint.
     LessonStartResponse:
       type: object
       required: [lessonId, questions]
@@ -148,9 +205,16 @@ components:
           minLength: 1
           maxLength: 80
           description: |
-            Required when the lesson mode is `listen_type` (v1.2.0). Trimmed,
-            case-insensitive matched. Levenshtein ≤ 1 of the canonical spelling
-            counts as correct.
+            Required for typed modes (`listen_type`, `write_type_word`,
+            `write_fill_gaps`). Trimmed, case-insensitive. Levenshtein ≤ 1
+            of the canonical English spelling counts as correct.
+        hintUsed:
+          type: boolean
+          description: |
+            v1.3+. True when the user revealed letters via the hint button
+            during a typed question. Backend zeroes the consecutiveCorrect
+            streak even on a correct answer — no mastery credit (FR-009).
+            Default false / absent.
         answerMs: { type: integer, minimum: 0 }
     AnswerResponse:
       type: object

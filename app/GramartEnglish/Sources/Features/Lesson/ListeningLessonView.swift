@@ -61,7 +61,9 @@ struct ListeningLessonView: View {
                     TypedAnswerInputView(
                         questionId: question.id,
                         canonical: question.word,
-                        onSubmit: onTypedAnswer,
+                        // listen_type doesn't track hintUsed at the
+                        // ListeningLessonView callback level; drop the flag.
+                        onSubmit: { typed, _ in onTypedAnswer(typed) },
                         onSkip: onSkip
                     )
                     .frame(maxWidth: 540)
@@ -102,7 +104,11 @@ struct ListeningLessonView: View {
         let modifiers: EventModifiers = mode.isTyped ? .command : []
         let hintLabel = mode.isTyped ? "Toca para repetir (⌘S)" : "Toca para repetir (S)"
         return Button {
-            SpeechService.shared.speakEnglish(question.word)
+            // v1.4.1 F3 — explicit user tap on the speaker hero must bypass
+            // the mute toggle (Settings promises: "Tocar el botón de altavoz
+            // siempre reproduce el audio"). See SpeechCallSiteAuditTests for
+            // the cross-codebase contract that pins this.
+            SpeechService.shared.speakEnglish(question.word, isUserInitiated: true)
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: "speaker.wave.3.fill")
@@ -129,6 +135,10 @@ struct ListeningLessonView: View {
         case .listenPickMeaning: return "¿Qué significa la palabra que escuchaste?"
         case .listenType: return "Escucha y escribe la palabra"
         case .readPickMeaning: return "¿Qué significa esta palabra?"
+        // Write + conjugation modes never reach this view (RootView dispatcher
+        // routes them elsewhere), but the switch must be exhaustive.
+        case .writePickWord, .writeTypeWord, .writeFillGaps: return ""
+        case .conjugatePickForm: return ""
         }
     }
 }

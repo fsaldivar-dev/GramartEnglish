@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "perf": "vitest run --config vitest.perf.config.ts",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint:types": "tsc --noEmit 2>&1 | awk '!/^src\\/observability\\/logger\\.ts\\(/ && !/^src\\/rag\\/index\\.ts\\(/' | (grep -E '^src/.*error' && exit 1 || exit 0)",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "ingest": "tsx scripts/ingest-cefr.ts",
     "db:rollback": "tsx scripts/db-rollback.ts",

@@ -9,12 +9,56 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
     public let word: String
     public let options: [String]
     public let position: Int
+    /// v1.3+. Spanish meaning the client should render as the question
+    /// stimulus for write modes (`write_pick_word`, `write_type_word`,
+    /// `write_fill_gaps`). `nil` for read + listen modes — those keep
+    /// rendering `word` as before.
+    public let prompt: String?
+    /// v1.5+. Scaffolded English word with underscores marking the letters
+    /// the user must type. Populated only for `write_fill_gaps` questions
+    /// where the target word is long enough (server auto-promotes shorter
+    /// words to plain typed input and omits this field).
+    public let maskedWord: String?
+    /// v1.6+. Populated only for `conjugate_pick_form` — English base form
+    /// of the verb being conjugated (e.g. "go" when the answer is "went").
+    public let verbBase: String?
+    /// v1.6+. Populated only for `conjugate_pick_form`. v1.6.0 ships
+    /// `"simple_past"`. Stored as a raw string so future tenses don't force
+    /// a LessonKit ABI bump.
+    public let targetTense: String?
+    /// v1.6.0 patch (Blocker 2). Populated only for `conjugate_pick_form` —
+    /// Spanish example sentence with `___` marking the verb slot (e.g.
+    /// "Ayer ___ tacos."). Disambiguates Spanish preterite vs imperfect
+    /// for verbs whose English past is the same form. Shown beneath the
+    /// "Pasado simple de …" header in a secondary style.
+    public let exampleEs: String?
+    /// v1.6.0 patch (Blocker 2). Populated only for `conjugate_pick_form` —
+    /// English translation with the verb already conjugated. Revealed
+    /// after the user answers, never before.
+    public let exampleEn: String?
 
-    public init(id: String, word: String, options: [String], position: Int) {
+    public init(
+        id: String,
+        word: String,
+        options: [String],
+        position: Int,
+        prompt: String? = nil,
+        maskedWord: String? = nil,
+        verbBase: String? = nil,
+        targetTense: String? = nil,
+        exampleEs: String? = nil,
+        exampleEn: String? = nil
+    ) {
         self.id = id
         self.word = word
         self.options = options
         self.position = position
+        self.prompt = prompt
+        self.maskedWord = maskedWord
+        self.verbBase = verbBase
+        self.targetTense = targetTense
+        self.exampleEs = exampleEs
+        self.exampleEn = exampleEn
     }
 }
 

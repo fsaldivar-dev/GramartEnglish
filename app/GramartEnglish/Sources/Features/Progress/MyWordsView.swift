@@ -16,7 +16,9 @@ struct MyWordsView: View {
         switch mode {
         case .readPickMeaning: return "📖"
         case .listenPickWord, .listenPickMeaning: return "👂"
-        case .listenType: return "✏️"
+        case .listenType: return "🎧"
+        case .writePickWord, .writeTypeWord, .writeFillGaps: return "✏️"
+        case .conjugatePickForm: return "🔁"
         }
     }
 

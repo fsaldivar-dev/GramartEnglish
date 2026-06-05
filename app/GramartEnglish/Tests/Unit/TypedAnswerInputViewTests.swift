@@ -12,25 +12,29 @@ final class TypedAnswerInputViewTests: XCTestCase {
         let view = TypedAnswerInputView(
             questionId: "q1",
             canonical: "weather",
-            onSubmit: { _ in },
+            onSubmit: { _, _ in },
             onSkip: {}
         )
         XCTAssertEqual(view.questionId, "q1")
         XCTAssertEqual(view.canonical, "weather")
     }
 
-    func testOnSubmitClosureCanReceiveTrimmedText() {
-        var observed: String?
+    func testOnSubmitClosureCanReceiveTrimmedTextAndHintFlag() {
+        var observed: (String, Bool)?
         let view = TypedAnswerInputView(
             questionId: "q1",
             canonical: "weather",
-            onSubmit: { observed = $0 },
+            onSubmit: { text, hintUsed in observed = (text, hintUsed) },
             onSkip: {}
         )
-        // The view trims internally before calling onSubmit; emulate by calling
-        // it with the value the view would compute.
-        view.onSubmit("weather")
-        XCTAssertEqual(observed, "weather")
+        // Emulate what the view's submit() helper would compute.
+        view.onSubmit("weather", false)
+        XCTAssertEqual(observed?.0, "weather")
+        XCTAssertEqual(observed?.1, false)
+        // And with hintUsed=true (FR-009 path).
+        view.onSubmit("weatherz", true)
+        XCTAssertEqual(observed?.0, "weatherz")
+        XCTAssertEqual(observed?.1, true)
     }
 
     func testOnSkipClosureWired() {
@@ -38,7 +42,7 @@ final class TypedAnswerInputViewTests: XCTestCase {
         let view = TypedAnswerInputView(
             questionId: "q1",
             canonical: "x",
-            onSubmit: { _ in },
+            onSubmit: { _, _ in },
             onSkip: { fired += 1 }
         )
         view.onSkip()

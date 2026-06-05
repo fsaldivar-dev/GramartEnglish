@@ -16,12 +16,14 @@ final class ModeCardComingSoonTests: XCTestCase {
         }
     }
 
-    /// The default `comingSoon` action is a no-op so accidentally invoking it
-    /// won't crash or call into RootView's mode-tap handler.
-    func testDefaultComingSoonActionIsNoOp() {
-        let card = ModeCard(comingSoon: .writePickWord)
-        // Should not crash; nothing to assert beyond "did not throw".
-        card.action()
+    /// v1.6.0 (F004 US1) shipped conjugate_pick_form — the ComingSoonMode
+    /// enum is empty for now. When the next coming-soon mode is added
+    /// (e.g. F004 US2 `conjugate_type_form`), repopulate this with a real
+    /// case to assert the no-op action path. Until then, asserting on the
+    /// empty allCases sentinel is the cheapest regression guard.
+    func testComingSoonEnumIsEmptyForNow() {
+        XCTAssertTrue(ComingSoonMode.allCases.isEmpty,
+                      "v1.6.0 shipped every previously coming-soon mode")
     }
 
     /// Recommended-tag never decorates a coming-soon card — the recommender
