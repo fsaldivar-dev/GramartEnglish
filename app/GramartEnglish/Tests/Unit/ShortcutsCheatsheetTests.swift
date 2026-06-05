@@ -13,12 +13,14 @@ final class ShortcutsCheatsheetTests: XCTestCase {
 
     // MARK: - Content pins
 
-    /// The full list must always contain exactly the 9 shortcuts shipping
-    /// today. A future addition that bumps the count without updating
-    /// this number fails CI as a heads-up to extend the cheatsheet doc +
-    /// the per-section assertions below.
+    /// The full list must always contain exactly the 12 shortcuts shipping
+    /// today (9 from the initial v1.12 cheatsheet + 3 added by the v1.12.0
+    /// patch when Priya audited the live app: `⌘,` for Settings, `⌘E` for
+    /// examples, `⌘.` for typed-mode "no lo sé"). A future addition that
+    /// bumps the count without updating this number fails CI as a heads-up
+    /// to extend the cheatsheet doc + the per-section assertions below.
     func testAllEntriesCountIsPinned() {
-        XCTAssertEqual(ShortcutsCheatsheetView.allEntries.count, 9)
+        XCTAssertEqual(ShortcutsCheatsheetView.allEntries.count, 12)
     }
 
     func testAudioSectionEntriesArePinned() {
@@ -29,20 +31,36 @@ final class ShortcutsCheatsheetTests: XCTestCase {
         XCTAssertEqual(audio[2], .init(key: "⌘M", action: "Silenciar / activar audio"))
     }
 
+    /// v1.12.0 patch (Priya blocker 1). `⌘E` opens the per-verb examples
+    /// panel from `AnswerFeedbackView`; the shortcut shipped in F008 but
+    /// was missing from the initial cheatsheet.
+    func testInformationSectionEntriesArePinned() {
+        let info = ShortcutsCheatsheetView.informationEntries
+        XCTAssertEqual(info.count, 1)
+        XCTAssertEqual(info[0], .init(key: "⌘E", action: "Ver ejemplos del verbo"))
+    }
+
     func testAnswerSectionEntriesArePinned() {
         let answer = ShortcutsCheatsheetView.answerEntries
-        XCTAssertEqual(answer.count, 4)
+        XCTAssertEqual(answer.count, 5)
         XCTAssertEqual(answer[0], .init(key: "1–4",   action: "Elegir opción"))
         XCTAssertEqual(answer[1], .init(key: "0",     action: "No lo sé"))
         XCTAssertEqual(answer[2], .init(key: "Enter", action: "Enviar respuesta"))
         XCTAssertEqual(answer[3], .init(key: "⌘H",   action: "Pedir pista"))
+        // v1.12.0 patch (Priya blocker 1). `⌘.` is the typed-mode no-sé
+        // shortcut wired in `TypedAnswerInputView` — the visible "0" key
+        // collides with the text field so this is the only path.
+        XCTAssertEqual(answer[4], .init(key: "⌘.",   action: "No lo sé (en modo escritura)"))
     }
 
     func testNavigationSectionEntriesArePinned() {
         let nav = ShortcutsCheatsheetView.navigationEntries
-        XCTAssertEqual(nav.count, 2)
+        XCTAssertEqual(nav.count, 3)
         XCTAssertEqual(nav[0], .init(key: "Esc", action: "Cerrar / salir"))
         XCTAssertEqual(nav[1], .init(key: "⌘/",  action: "Mostrar este menú"))
+        // v1.12.0 patch (Priya blocker 1). `⌘,` opens Settings from
+        // `HomeView` (system-standard preferences shortcut).
+        XCTAssertEqual(nav[2], .init(key: "⌘,",  action: "Abrir Ajustes"))
     }
 
     /// Spanish copy pin — the action text must remain in Spanish so the
