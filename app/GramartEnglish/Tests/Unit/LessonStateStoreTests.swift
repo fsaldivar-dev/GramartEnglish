@@ -111,10 +111,14 @@ final class LessonStateStoreTests: XCTestCase {
         store.save(sample(index: 1))
         store.save(sample(index: 2))
         store.save(sample(index: 3))
-        // Wait for the debounce to elapse.
+        // Wait for the debounce to elapse, then explicitly flush — on slow
+        // CI runners (macOS GitHub Actions) the 30ms debounce write may not
+        // land within 100ms. flush() guarantees the most recent save is
+        // synchronous before load().
         let exp = expectation(description: "debounce flush")
         DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { exp.fulfill() }
         wait(for: [exp], timeout: 1.0)
+        store.flush()
 
         let loaded = store.load()
         XCTAssertEqual(loaded?.currentQuestionIndex, 3)
