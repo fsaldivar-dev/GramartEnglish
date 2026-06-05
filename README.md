@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.9.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.10.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -23,6 +23,12 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## What's new
 
+- **v1.10.0 — False-friend bias, Dark Mode assets, A1 belt expansion, muted speaker glyph (F009, 4 locked items)** —
+  - **Dark Mode semantic colors**: `Semantic.success/warning/error` finally pay off the v1.8.0 TODO. Three named colorsets ship in `Sources/Resources/Assets.xcassets` with light + dark variants tuned to WCAG AA contrast on the macOS window background (`#0E7C3A`/`#4ADE80`, `#B45309`/`#FBBF24`, `#B91C1C`/`#F87171`). An SPM-build fallback synthesises a dynamic NSColor that auto-swaps on `ColorScheme` when the catalog isn't compiled by `actool`, so `swift build` runs stay correct.
+  - **A1 + B1 false-friend belt v2**: 6 new entries — A1 ×4 (`large`/`rope`/`once`/`soap`) catch day-1 traps that the v1.9.0 A2/B1 belt didn't cover; B1 ×2 (`constipated`/`molest`) are the highest-social-cost traps. Each carries the same "OJO: …" warning pattern as the v1.9 belt.
+  - **False-friend selection bias**: `FALSE_FRIEND_BIAS_FACTOR = 1.15` applied per-candidate inside `selectLessonWords` (Efraimidis-Spirakis weighted shuffle). Belt words that are NOT yet mastered in the current mode get a +15 % lift so the "OJO" cue actually surfaces during practice; mastered belt words revert to baseline so review lessons aren't dominated. Seeded statistical test: ≥ 80 % of 50 runs show ≥ 1 false-friend in the chosen 10.
+  - **Per-question muted-state indicator**: every `SpeakButton` (not just chrome) now swaps to `speaker.slash.fill` while `SpeechService.shared.isMuted`. VoiceOver label appends "(audio silenciado)". Tap behaviour unchanged — explicit user taps still play (v1.4.1 F3 bypass).
+  - See [specs/009-falsefriend-bias-darkmode-assets/](specs/009-falsefriend-bias-darkmode-assets/).
 - **v1.9.0 — Mute toggle, token sweep, false-friend belt, summary buttons (F008, 4 locked items)** —
   - **In-lesson mute toggle**: every lesson chrome ships a top-right mute button left of the exit X. `⌘M` is the keyboard shortcut (bare `M` collided with typed-answer input). Bound to the existing `SpeechService.shared.isMuted` UserDefaults flag — no more two-hop trip through Settings to silence auto-fire TTS in a cafe. The speaker glyphs dim to `.secondary` while muted as a trust signal.
   - **Token sweep**: `Sources/Features/` is now free of `.system(size: N)` literals — every hero font is Dynamic-Type-relative (`.font(.system(.title, design: .rounded))` + `minimumScaleFactor`). A grep-based lint in `DesignTokenContractTests` fails the build if a literal sneaks back in. Sanctioned cornerRadius literals (8/12/16) migrated to `Radius.sm/.md/.lg`.
