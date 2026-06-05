@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.4.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.5.3](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -21,22 +21,17 @@ GramartEnglish is built under a written project constitution. The full ratified 
 - **Accessibility** — VoiceOver, keyboard nav, Dynamic Type, Increase Contrast
 - **Performance budgets** (≤ 2 s cold launch, ≤ 1.5 s LLM first token)
 
-## What's new in v1.4 — Adaptive Placement (F005)
+## What's new
 
-The placement test no longer asks 24 fixed questions across all 6 levels. Instead it adapts: an optional self-report screen anchors your starting level ("Nunca / Un poco / Bastante"), then the test asks one question at a time and ramps difficulty up or down based on your answers, finishing in 12–30 items. A user who can't read past A1 now lands at A1 instead of being randomly classified as C1. The Settings level override is unchanged and continues to constrain lesson selection end-to-end — pinned by a regression test added in this release. See [specs/005-adaptive-placement/](specs/005-adaptive-placement/).
+- **v1.5.3** — hygiene patch: README freshness, two `tsc --noEmit` landmines fixed (`lessonService` missing `outcome`, `placement` `httpErrors` undefined), `CLAUDE.md` pointer updated.
+- **v1.5.0–v1.5.2** — Write modes (F003): `write_pick_word` + `write_type_word` shipped; per-mode mastery now spans read + listen + write surfaces.
+- **v1.4 — Adaptive Placement (F005)** — the placement test no longer asks 24 fixed questions across all 6 levels. Instead it adapts: an optional self-report screen anchors your starting level ("Nunca / Un poco / Bastante"), then the test ramps difficulty up or down based on your answers, finishing in 12–30 items. A user who can't read past A1 now lands at A1 instead of being randomly classified as C1. The Settings level override is unchanged and continues to constrain lesson selection end-to-end — pinned by a regression test. See [specs/005-adaptive-placement/](specs/005-adaptive-placement/).
 
 ## Active feature
 
-The current feature is `002-listening-modes` (built on top of `001-vocabulary-lesson-mvp`). Design lives under [specs/002-listening-modes/](specs/002-listening-modes/):
+Active feature: `005-adaptive-placement` (shipped); next: pending PO+TL deliberation. Most recent design artifacts live under [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
-- [spec.md](specs/002-listening-modes/spec.md) — listening-modes user stories, requirements, success criteria
-- [plan.md](specs/002-listening-modes/plan.md) — implementation plan
-- [data-model.md](specs/002-listening-modes/data-model.md) — migration 0003 (per-mode mastery)
-- [contracts/openapi-delta.yaml](specs/002-listening-modes/contracts/openapi-delta.yaml) — additions on top of v1.1 contract
-- [tasks.md](specs/002-listening-modes/tasks.md) — 63 dependency-ordered tasks
-- [design/a11y-audit.md](specs/002-listening-modes/design/a11y-audit.md) — accessibility checklist for the new surfaces
-
-The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/).
+The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 
 ## Lesson modes
 
@@ -50,7 +45,7 @@ Feature 002 introduces four lesson modes, each tracked as an **independent** mas
 | `listen_type` | 🎧 | Hear audio, type the word (typos within Levenshtein ≤ 1 accepted) | Shipped (F002) |
 | `write_pick_word` | ✏️ | See the Spanish meaning, pick the English word from 4 options | Shipped (F003) |
 | `write_type_word` | ✏️ | See the Spanish meaning, type the English word (Levenshtein ≤ 1 + hint button) | Shipped (F003) |
-| `write_fill_gaps` | ✏️ | See Spanish + masked English (e.g. `w__th_r`), type the missing letters | Próximamente (v1.4) |
+| `write_fill_gaps` | ✏️ | See Spanish + masked English (e.g. `w__th_r`), type the missing letters | Shipped (v1.5.0) |
 | `conjugate_pick_form` | 🔁 | Future: verb conjugation drills | Próximamente (F004) |
 
 Per-mode mastery is surfaced in three places: the Home cards (pending counts + "Recomendado para ti" tag), the post-lesson summary (per-mode badge strip), and the **Mis palabras** screen.
