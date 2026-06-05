@@ -235,19 +235,28 @@ export class LessonService {
     if (!lesson) return null;
     const questions = this.deps.questions.byLessonId(input.lessonId);
     if (lesson.state === 'completed') {
-      const missed = questions.filter((q) => q.correct === false);
-      const missedWords = missed
+      const missed = questions.filter((q) => q.correct === false || q.skipped);
+      const missedWords: LessonSummary['missedWords'] = missed
         .map((q) => {
           const w = this.deps.words.byId(q.wordId);
-          return w ? { word: w.base, canonicalDefinition: w.canonicalDefinition } : null;
+          if (!w) return null;
+          return {
+            word: w.base,
+            canonicalDefinition: w.canonicalDefinition,
+            outcome: q.skipped ? ('skipped' as const) : ('incorrect' as const),
+          };
         })
-        .filter((m): m is { word: string; canonicalDefinition: string } => m !== null);
+        .filter((m): m is { word: string; canonicalDefinition: string; outcome: 'incorrect' | 'skipped' } => m !== null);
+      const skipped = questions.filter((q) => q.skipped).length;
+      const wrong = questions.filter((q) => q.correct === false && !q.skipped).length;
       return {
         kind: 'completed',
         lesson,
         summary: {
           lessonId: lesson.id,
           score: lesson.score ?? questions.filter((q) => q.correct === true).length,
+          skipped,
+          wrong,
           total: questions.length,
           missedWords,
         },

@@ -117,9 +117,7 @@ export async function registerPlacementRoutes(app: FastifyInstance, deps: Placem
       // ──────────── Legacy v1 path (v1.3 clients) ────────────
       const questions = selectPlacementQuestions(wordRepo, seed !== undefined ? { seed } : {});
       if (questions.length === 0) {
-        throw app.httpErrors?.serviceUnavailable
-          ? app.httpErrors.serviceUnavailable('No CEFR corpus available')
-          : new Error('No CEFR corpus available');
+        return reply.code(503).send({ code: 'corpus_unavailable', message: 'No CEFR corpus available' });
       }
       const placementId = randomUUID();
       placements.set(placementId, {
