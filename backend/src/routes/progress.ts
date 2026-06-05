@@ -56,6 +56,7 @@ export async function registerProgressRoutes(app: FastifyInstance, deps: Progres
       write_pick_word: 0,
       write_type_word: 0,
       write_fill_gaps: 0,
+      conjugate_pick_form: 0,
     };
     for (const mode of SHIPPED_MODES) {
       perModeMastered[mode] = masteryRepo.countMastered(user.id, mode);
