@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.11.0
+  version: 1.12.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
