@@ -59,10 +59,13 @@ public enum Tint {
 ///      that auto-switches between the same light/dark hexes via
 ///      `ColorScheme`, so the runtime app stays correct.
 ///
-/// Both paths land on the same six sRGB hexes:
+/// Both paths land on the same six sRGB hexes. F010 (v1.11.0) warmed
+/// the dark variants per Mariana's latina-warm palette pass — amber
+/// shifted from canary-yellow to a softer honey, red from coral-pink
+/// to a more saturated coral. Both keep ≥ 4.5:1 contrast on #1E1E1E.
 ///   success: #0E7C3A light / #4ADE80 dark
-///   warning: #B45309 light / #FBBF24 dark
-///   error:   #B91C1C light / #F87171 dark
+///   warning: #B45309 light / #F5C242 dark  (was #FBBF24)
+///   error:   #B91C1C light / #EF5B5B dark  (was #F87171)
 ///
 /// Why `.module` and not `.main`: SPM places resources processed via
 /// `.process(...)` into the target's per-module bundle, not the app's
@@ -96,8 +99,8 @@ public enum Semantic {
     }
 
     public static let success: Color = token("SemanticSuccess", lightHex: 0x0E7C3A, darkHex: 0x4ADE80)
-    public static let warning: Color = token("SemanticWarning", lightHex: 0xB45309, darkHex: 0xFBBF24)
-    public static let error:   Color = token("SemanticError",   lightHex: 0xB91C1C, darkHex: 0xF87171)
+    public static let warning: Color = token("SemanticWarning", lightHex: 0xB45309, darkHex: 0xF5C242)
+    public static let error:   Color = token("SemanticError",   lightHex: 0xB91C1C, darkHex: 0xEF5B5B)
 
     /// Exposed for tests in this module — `Bundle.module` is internal
     /// to the target that owns the resource manifest, so the test target
@@ -114,7 +117,7 @@ public enum Semantic {
     public static let successLightHex: UInt32 = 0x0E7C3A
     public static let successDarkHex:  UInt32 = 0x4ADE80
     public static let warningLightHex: UInt32 = 0xB45309
-    public static let warningDarkHex:  UInt32 = 0xFBBF24
+    public static let warningDarkHex:  UInt32 = 0xF5C242
     public static let errorLightHex:   UInt32 = 0xB91C1C
-    public static let errorDarkHex:    UInt32 = 0xF87171
+    public static let errorDarkHex:    UInt32 = 0xEF5B5B
 }
