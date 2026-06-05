@@ -104,7 +104,11 @@ struct ListeningLessonView: View {
         let modifiers: EventModifiers = mode.isTyped ? .command : []
         let hintLabel = mode.isTyped ? "Toca para repetir (⌘S)" : "Toca para repetir (S)"
         return Button {
-            SpeechService.shared.speakEnglish(question.word)
+            // v1.4.1 F3 — explicit user tap on the speaker hero must bypass
+            // the mute toggle (Settings promises: "Tocar el botón de altavoz
+            // siempre reproduce el audio"). See SpeechCallSiteAuditTests for
+            // the cross-codebase contract that pins this.
+            SpeechService.shared.speakEnglish(question.word, isUserInitiated: true)
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: "speaker.wave.3.fill")
