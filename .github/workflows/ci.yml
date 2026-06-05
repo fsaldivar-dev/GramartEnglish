@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Opt every JavaScript-based action into Node 24 ahead of GitHub's 2026-06-16
+# deadline (#9). Lets us stay on v4 of checkout/setup-node/upload-artifact/etc.
+# without chasing major bumps; flip to vNext once those tags ship and prove out.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   backend:
     name: Backend (Node.js)
