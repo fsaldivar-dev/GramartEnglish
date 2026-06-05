@@ -1,0 +1,19 @@
+# F010 — OpenAPI delta (v1.11.0)
+#
+# No new paths, schemas, or response shapes. F010 is client-side +
+# corpus-only:
+# - 13 corner-radius literals + 5 tint-opacity literals + 5 raw-color
+#   literals migrated to the Radius/Tint/Semantic token APIs.
+# - 4 new Lucía false-friend entries in data/cefr/{a2,b1}.json round-trip
+#   through the existing /api/lessons response shape (`falseFriendEs` was
+#   added in v1.9 / F008 Item 3 — no schema change here).
+# - Resume CTA on LessonSummaryView is purely a client wiring of the
+#   existing local LessonStateStore snapshot; no new endpoint.
+# - Warm-tuned dark palette hexes ship via Asset.xcassets + the
+#   DesignTokens.Semantic.{warning,error} fallback constants.
+#
+# The only contract change is `info.version` in `openapi.yaml`, which
+# moves 1.10.0 → 1.11.0 in lockstep with version.json.
+
+info:
+  version: 1.11.0
