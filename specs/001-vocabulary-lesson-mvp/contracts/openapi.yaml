@@ -159,6 +159,23 @@ components:
             v1.6+. Populated only for `conjugate_pick_form`. v1.6.0 ships
             `simple_past` only; the enum reserves room for additional tenses
             (`past_participle`, `gerund`, `third_person`) in future releases.
+        exampleEs:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            Spanish example sentence with `___` marking the verb slot
+            (e.g. "Ayer ___ tacos."). Disambiguates tenses Spanish
+            distinguishes (preterite vs imperfect) but English collapses
+            (both → "ate"). Rendered below the prompt header in a
+            secondary style so it supports — doesn't compete with — the
+            hero infinitive.
+        exampleEn:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            English translation of `exampleEs` with the verb already
+            conjugated. The client reveals it after the user answers as
+            reinforcement, never before as a hint.
     LessonStartResponse:
       type: object
       required: [lessonId, questions]

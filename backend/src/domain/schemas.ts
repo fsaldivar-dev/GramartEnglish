@@ -126,6 +126,12 @@ export const LessonQuestion = z.object({
    *  "simple_past"; the field is reserved for additional tenses in later
    *  releases. Omitted for other modes. */
   targetTense: z.enum(['simple_past']).optional(),
+  /** v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only: Spanish
+   *  example sentence with `___` slot — anchors tense for learners. */
+  exampleEs: z.string().optional(),
+  /** v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only: English
+   *  translation with the verb already conjugated. */
+  exampleEn: z.string().optional(),
 });
 
 export const LessonStartResponse = z.object({
