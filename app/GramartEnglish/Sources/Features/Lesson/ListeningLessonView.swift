@@ -38,14 +38,15 @@ struct ListeningLessonView: View {
                 HStack(spacing: Spacing.sm) {
                     // F008 Item 1 (v1.9.0). Mute toggle — extra-valuable in
                     // listening modes where auto-fire TTS is the primary
-                    // stimulus. M shortcut, persists across launches.
+                    // stimulus. ⌘M shortcut, persists across launches.
+                    // v1.9.0 patch (Marisol): leading Spacer right-aligns.
+                    Spacer()
                     MuteToggleButton()
                     Button(action: onExit) {
                         Image(systemName: "xmark.circle").imageScale(.large)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Salir de la lección")
-                    Spacer()
                 }
 
                 ProgressHeader(current: progress.current, total: progress.total)
