@@ -100,4 +100,70 @@ final class LessonViewModelTests: XCTestCase {
         guard case .failed(let msg) = vm.phase else { return XCTFail("expected failed, got \(vm.phase)") }
         XCTAssertTrue(msg.contains("HTTP 500"))
     }
+
+    // MARK: - F007 (v1.8.0): LessonStateStore wiring
+
+    private func makeViewModelWithStore(_ store: LessonStateStore) -> LessonViewModel {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [TestURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = BackendClient(baseURL: URL(string: "http://127.0.0.1:1234")!, session: session) {
+            "deadbeef-dead-4dad-8dad-deadbeefdead"
+        }
+        return LessonViewModel(client: client, level: "A1", stateStore: store)
+    }
+
+    private func freshStateStore() -> LessonStateStore {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VMTests-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let store = LessonStateStore(directory: dir)
+        store.debounceOverrideMillis = 0
+        return store
+    }
+
+    func testSnapshotPersistsOnStart() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { _ in (200, Self.startBody()) }
+        await vm.start()
+        store.flush()
+        let loaded = store.load()
+        XCTAssertNotNil(loaded)
+        XCTAssertEqual(loaded?.lessonId, "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(loaded?.phase, .answering)
+        XCTAssertEqual(loaded?.currentQuestionIndex, 0)
+    }
+
+    func testSnapshotUpdatesOnReveal() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { request in
+            if request.url?.path.hasSuffix("/lessons") ?? false { return (200, Self.startBody()) }
+            return (200, Self.answerBody(correct: true))
+        }
+        await vm.start()
+        await vm.answer(1)
+        store.flush()
+        XCTAssertEqual(store.load()?.phase, .revealing)
+    }
+
+    func testSnapshotIsClearedOnComplete() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { request in
+            let path = request.url?.path ?? ""
+            if path.hasSuffix("/lessons") { return (200, Self.startBody()) }
+            if path.contains("/answers") { return (200, Self.answerBody(correct: true)) }
+            if path.contains("/complete") { return (200, Self.summaryBody()) }
+            return (404, Data())
+        }
+        await vm.start()
+        await vm.answer(1)
+        await vm.next()
+        await vm.answer(2)
+        await vm.next() // triggers complete
+        store.flush()
+        XCTAssertNil(store.load(), "Snapshot must be cleared after lesson completes")
+    }
 }
