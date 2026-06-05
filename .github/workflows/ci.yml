@@ -30,6 +30,8 @@ jobs:
           cache-dependency-path: backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
+      - name: Type-check (allowlist for rag + logger)
+        run: pnpm run lint:types
       - run: pnpm test
       - name: Performance budgets (stubbed LLM)
         run: pnpm run perf

@@ -12,7 +12,7 @@ public struct BackendClient: Sendable {
     /// Sent on every request as `X-Client-Version`. The backend uses this to
     /// branch placement /start between the v1.3 (legacy 24-question) and the
     /// v1.4+ (adaptive single-question) shapes.
-    public static let clientVersion = "1.5.2"
+    public static let clientVersion = "1.5.3"
 
     public let baseURL: URL
     public let session: URLSession
