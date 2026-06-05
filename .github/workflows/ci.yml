@@ -6,11 +6,10 @@ on:
   pull_request:
     branches: [main]
 
-# Opt every JavaScript-based action into Node 24 ahead of GitHub's 2026-06-16
-# deadline (#9). Lets us stay on v4 of checkout/setup-node/upload-artifact/etc.
-# without chasing major bumps; flip to vNext once those tags ship and prove out.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+# v1.5.2: all JavaScript-based actions bumped to majors that ship Node 24
+# natively (checkout@v5, setup-node@v5, upload-artifact@v5, pnpm/action-setup@v5,
+# softprops/action-gh-release@v3). The FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env
+# override is no longer needed and has been removed (#9 closed).
 
 jobs:
   backend:
@@ -20,11 +19,11 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
           version: 9
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -41,7 +40,7 @@ jobs:
     name: Swift packages
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Select Xcode 15.4
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       - name: Test LessonKit
