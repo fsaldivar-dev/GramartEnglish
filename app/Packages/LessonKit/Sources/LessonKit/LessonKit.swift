@@ -36,6 +36,13 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
     /// English translation with the verb already conjugated. Revealed
     /// after the user answers, never before.
     public let exampleEn: String?
+    /// F008 Item 3 (v1.9.0). Optional Spanish false-friend warning. When
+    /// the target word has a high-frequency Spanish look-alike with a
+    /// different meaning, the server attaches a short "OJO: no es '…'"
+    /// string here. The client renders it in the post-answer feedback
+    /// panel so the disambiguation lands at the moment of recall, not as
+    /// a preemptive hint. `nil` for the ~98% of words without a belt entry.
+    public let falseFriendEs: String?
 
     public init(
         id: String,
@@ -47,7 +54,8 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
         verbBase: String? = nil,
         targetTense: String? = nil,
         exampleEs: String? = nil,
-        exampleEn: String? = nil
+        exampleEn: String? = nil,
+        falseFriendEs: String? = nil
     ) {
         self.id = id
         self.word = word
@@ -59,6 +67,7 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
         self.targetTense = targetTense
         self.exampleEs = exampleEs
         self.exampleEn = exampleEn
+        self.falseFriendEs = falseFriendEs
     }
 }
 

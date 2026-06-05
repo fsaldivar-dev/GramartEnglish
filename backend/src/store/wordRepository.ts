@@ -12,6 +12,11 @@ export interface VocabularyWordRow {
   addedAt: string;
   spanishOption: string;
   spanishDefinition: string;
+  /** F008 Item 3 (v1.9.0). Optional Spanish warning surfaced when the word
+   *  has a high-frequency Spanish look-alike with a different meaning (e.g.
+   *  "realize" → "OJO: no es 'realizar' (do/carry out)"). Populated only for
+   *  the ~10-12 belt entries Lucía curated; absent for everything else. */
+  falseFriendEs?: string;
 }
 
 interface RawRow {
@@ -25,12 +30,15 @@ interface RawRow {
   addedAt: string;
   spanishOption: string;
   spanishDefinition: string;
+  falseFriendEs: string | null;
 }
 
 function decode(row: RawRow): VocabularyWordRow {
+  const { falseFriendEs, ...rest } = row;
   return {
-    ...row,
+    ...rest,
     canonicalExamples: JSON.parse(row.canonicalExamples) as string[],
+    ...(falseFriendEs ? { falseFriendEs } : {}),
   };
 }
 
@@ -87,8 +95,9 @@ export class WordRepository {
 
   insertMany(words: Omit<VocabularyWordRow, 'id'>[]): void {
     const stmt = this.db.prepare(
-      `INSERT INTO vocabulary_words (base, pos, level, canonicalDefinition, canonicalExamples, sourceTag, addedAt, spanishOption, spanishDefinition)
-       VALUES (@base, @pos, @level, @canonicalDefinition, @canonicalExamples, @sourceTag, @addedAt, @spanishOption, @spanishDefinition)
+      // F008 Item 3 (v1.9.0): falseFriendEs column (nullable, additive).
+      `INSERT INTO vocabulary_words (base, pos, level, canonicalDefinition, canonicalExamples, sourceTag, addedAt, spanishOption, spanishDefinition, falseFriendEs)
+       VALUES (@base, @pos, @level, @canonicalDefinition, @canonicalExamples, @sourceTag, @addedAt, @spanishOption, @spanishDefinition, @falseFriendEs)
        ON CONFLICT(base) DO NOTHING`,
     );
     const tx = this.db.transaction((rows: typeof words) => {
@@ -96,6 +105,7 @@ export class WordRepository {
         stmt.run({
           ...w,
           canonicalExamples: JSON.stringify(w.canonicalExamples),
+          falseFriendEs: w.falseFriendEs ?? null,
         });
       }
     });
