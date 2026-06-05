@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: GramartEnglish — F006 delta
+  version: 1.7.0
+paths:
+  /v1/verbs/{base}/intro:
+    get:
+      summary: Pre-conjugation micro-card payload
+      description: |
+        Returns the bilingual mini-context for a verb, used by the "Conoce el
+        verbo" intro card before the FIRST `conjugate_pick_form` question per
+        verb. Local-only `verbIntroSeen` state decides whether the client
+        actually shows it.
+      parameters:
+        - in: path
+          name: base
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+            pattern: '^[a-z]+$'
+          description: English infinitive form, lowercase.
+      responses:
+        '200':
+          description: Verb intro payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerbIntro'
+        '404':
+          description: Unknown verb base.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    VerbIntro:
+      type: object
+      required: [base, es, exampleEs, exampleEn, audioBase]
+      properties:
+        base:
+          type: string
+          example: go
+        es:
+          type: string
+          example: ir
+        exampleEs:
+          type: string
+          description: Spanish sentence with the past form already substituted.
+          example: "Ayer fui al cine con mi hermana."
+        exampleEn:
+          type: string
+          example: "Yesterday I went to the movies with my sister."
+        audioBase:
+          type: string
+          example: go.mp3
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
