@@ -304,7 +304,8 @@ struct LessonFlowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        // F010 (v1.11.0). Token sweep — 10pt rounds to Radius.md (12).
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: Radius.md))
         .padding(.horizontal, 24)
         .padding(.top, 8)
         .accessibilityElement(children: .combine)

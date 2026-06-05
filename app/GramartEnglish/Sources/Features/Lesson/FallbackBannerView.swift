@@ -4,7 +4,9 @@ struct FallbackBannerView: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.circle")
-                .foregroundStyle(.orange)
+                // F010 (v1.11.0). Raw `.orange` → Semantic.warning so the
+                // banner glyph stays paired with the v1.10 dark-tuned amber.
+                .foregroundStyle(Semantic.warning)
             Text("Ejemplos con IA no disponibles. Mostrando un ejemplo curado.")
                 .font(.callout)
                 .foregroundStyle(.primary)

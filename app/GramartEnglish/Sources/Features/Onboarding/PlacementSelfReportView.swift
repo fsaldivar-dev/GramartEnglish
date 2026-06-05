@@ -92,7 +92,8 @@ struct PlacementSelfReportView: View {
                 Text(keyLabel)
                     .font(.system(.body, design: .monospaced))
                     .frame(width: 28, height: 28)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                    // F010 (v1.11.0). 6pt → Radius.sm (8).
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: Radius.sm))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
                         .font(.system(.body, design: .rounded).weight(.semibold))
@@ -105,7 +106,8 @@ struct PlacementSelfReportView: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+            // F010 (v1.11.0). 10pt → Radius.md (12).
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
         }
         .buttonStyle(.plain)
         .keyboardShortcut(KeyEquivalent(Character(keyLabel)), modifiers: [])
