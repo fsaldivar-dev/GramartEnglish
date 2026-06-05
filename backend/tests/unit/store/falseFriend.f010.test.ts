@@ -12,7 +12,8 @@ import { WordRepository } from '../../../src/store/wordRepository.js';
  * `embarrassed` row was already present at A2 in v1.9; Lucía has
  * iterated the copy twice (the v1.11.0 patch swapped the
  * auto-promotional "el falso amigo más peligroso socialmente" for
- * the softer "puede dar pena ajena" closer).
+ * the softer "puede dar pena ajena" closer). `record` similarly
+ * picked up a clarifying noun-sense aside in the same patch.
  *
  * The same round-trip guard as the F009 belt test: a missing entry,
  * a snake_case typo, or a drift in Lucía's locked copy all fail here.
@@ -42,12 +43,15 @@ describe('F010 — A2 false-friend additions', () => {
     expect(w?.falseFriendEs).not.toContain('socialmente');
   });
 
-  it('loads record at A2 with the grabar-vs-recordar warning', () => {
+  it('loads record at A2 with the grabar-vs-recordar warning + noun aside', () => {
     const w = setup().byBase('record');
     expect(w).toBeDefined();
     expect(w?.level).toBe('A2');
     expect(w?.falseFriendEs).toContain('grabar');
     expect(w?.falseFriendEs).toContain('to remember');
+    // v1.11.0 patch — Lucía added the noun-sense aside so the warning
+    // doesn't accidentally over-correct learners who heard "récord".
+    expect(w?.falseFriendEs).toContain('registro');
   });
 });
 
