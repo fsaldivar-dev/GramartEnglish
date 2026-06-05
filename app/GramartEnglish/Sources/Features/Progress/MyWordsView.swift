@@ -56,7 +56,8 @@ struct MyWordsView: View {
 
                 Spacer(minLength: 24)
             }
-            .padding(24)
+            // F011 (v1.12.0). Padding-literal sweep — 24pt → Spacing.lg.
+            .padding(Spacing.lg)
         }
         .frame(minWidth: 480, minHeight: 360)
     }

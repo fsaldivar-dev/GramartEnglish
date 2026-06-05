@@ -126,7 +126,11 @@ struct ListeningLessonView: View {
                     .fontWeight(.bold)
                     .minimumScaleFactor(0.5)
                     .foregroundStyle(.tint)
-                    .padding(28)
+                    // F011 (v1.12.0). Padding-literal sweep — 28pt rounds UP
+                    // to Spacing.xl (32) per the v1.11 mapping rubric (the
+                    // 28→32 step keeps the circle generous; 28→24 felt cramped
+                    // in Mariana's hero comp).
+                    .padding(Spacing.xl)
                     .frame(width: 160, height: 160)
                     .background(.tint.opacity(Tint.soft), in: Circle())
                 Text(hintLabel)
