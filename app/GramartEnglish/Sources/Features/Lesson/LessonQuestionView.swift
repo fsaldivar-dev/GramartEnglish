@@ -27,7 +27,9 @@ struct LessonQuestionView: View {
                     Text(question.word)
                         .font(.system(size: 56, weight: .semibold, design: .rounded))
                         .accessibilityAddTraits(.isHeader)
-                    SpeakButton(text: question.word, shortcut: "s", size: 22)
+                    SpeakButton(text: question.word, shortcut: "s", size: 22, rate: .normal)
+                    // F007 (v1.8.0). Slow-rate companion for A1 self-correction.
+                    SpeakButton(text: question.word, shortcut: "d", size: 22, rate: .slow)
                 }
                 .padding(.top, 8)
                 .onAppear { SpeechService.shared.speakEnglish(question.word) }

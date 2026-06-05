@@ -7,6 +7,31 @@ public enum EnglishAccent: String, CaseIterable, Sendable {
     case british = "en-GB"
 }
 
+/// F007 (v1.8.0). Named TTS rate presets. We expose two:
+///
+///   - `.normal` (≈ 0.42 of `AVSpeechUtterance.rate`): the historical
+///     vocabulary-practice rate. Roughly 85% of Apple's default, matching
+///     Translate's per-word audio cadence.
+///   - `.slow` (≈ 0.35): the "tortuga" rate Lucía asked for so A1 learners
+///     can self-correct pronunciation. Concretely, this is
+///     `AVSpeechUtteranceMinimumSpeechRate * 0.4 +
+///      AVSpeechUtteranceDefaultSpeechRate * 0.6` rounded to the nearest
+///     hundredth (`AVSpeechUtterance` only accepts a Float in
+///     [minimum, maximum]).
+///
+/// Pinned values live in `SpeechRateTests.swift`.
+public enum SpeechRate: Sendable, Equatable {
+    case normal
+    case slow
+
+    public var value: Float {
+        switch self {
+        case .normal: return 0.42
+        case .slow: return 0.35
+        }
+    }
+}
+
 /// Local text-to-speech using macOS `AVSpeechSynthesizer`. No network, no
 /// account, no telemetry — aligned with the privacy-first constitution.
 ///
@@ -58,6 +83,14 @@ public final class SpeechService: @unchecked Sendable {
     /// - Parameter isUserInitiated: pass `true` from explicit user taps on
     ///   the 🔊 button. Defaults to `false` so auto-fire callsites
     ///   (`.onAppear`, `.onChange`) honor the mute toggle.
+    /// F007 (v1.8.0) — named-rate overload. Same semantics as the
+    /// `Float` variant, but call-sites use `.normal` / `.slow` so the
+    /// "lento" button can't accidentally pick a different concrete rate
+    /// than the audit tests pin.
+    public func speakEnglish(_ text: String, rate: SpeechRate, isUserInitiated: Bool = false) {
+        speakEnglish(text, rate: rate.value, isUserInitiated: isUserInitiated)
+    }
+
     public func speakEnglish(_ text: String, rate: Float = 0.42, isUserInitiated: Bool = false) {
         // v1.4.1 F3: mute toggle short-circuits auto-fire only — manual taps
         // always play so users can replay a word even with auto-speak off.
