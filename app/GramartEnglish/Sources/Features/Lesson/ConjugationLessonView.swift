@@ -76,8 +76,15 @@ struct ConjugationLessonView: View {
             Text("Pasado simple de")
                 .font(.system(.title3, design: .rounded))
                 .foregroundStyle(.secondary)
+            // v1.6.0 patch (Blocker 3, Principle VII): Dynamic Type. Replaced
+            // hardcoded `.system(size: 44)` with `.largeTitle`-relative font +
+            // `minimumScaleFactor(0.5)` — matches the F005 PlacementResultView
+            // pattern. Long Spanish infinitives ("entender / comprender") shrink
+            // rather than truncating.
             Text(infinitive)
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
+                .font(.system(.largeTitle, design: .rounded))
+                .fontWeight(.semibold)
+                .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
             Text("español")
@@ -85,10 +92,26 @@ struct ConjugationLessonView: View {
                 .foregroundStyle(.tertiary)
                 .textCase(.uppercase)
                 .tracking(1.5)
+            // v1.6.0 patch (Blocker 2): Spanish example sentence with `___`
+            // verb slot. Disambiguates tenses that Spanish distinguishes
+            // (preterite vs imperfect) but English collapses (both → "ate").
+            // Rendered in a secondary style so it supports — doesn't compete
+            // with — the hero infinitive.
+            if let exampleEs = question.exampleEs, !exampleEs.isEmpty {
+                Text(exampleEs)
+                    .font(.system(.callout, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 6)
+                    .padding(.horizontal, 8)
+                    .accessibilityLabel("Ejemplo en español: \(exampleEs.replacingOccurrences(of: "___", with: "espacio en blanco"))")
+            }
         }
         .padding(.horizontal, 16)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Pasado simple del verbo en español: \(infinitive)")
+        .accessibilityElement(children: .contain)
+        // v1.6.0 patch (Polish A): drop redundant "del verbo en español" —
+        // the "ESPAÑOL" chip beneath the hero already labels the language.
+        .accessibilityLabel("Pasado simple de: \(infinitive)")
         .accessibilityHint("Elige la forma correcta del pasado simple en inglés")
     }
 
