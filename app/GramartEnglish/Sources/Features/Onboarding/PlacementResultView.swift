@@ -24,7 +24,9 @@ struct PlacementResultView: View {
                 .foregroundStyle(.secondary)
 
             Text(result.estimatedLevel)
-                .font(.system(size: 80, weight: .bold, design: .rounded))
+                .font(.system(.largeTitle, design: .rounded))
+                .fontWeight(.bold)
+                .minimumScaleFactor(0.5)
                 .foregroundStyle(.tint)
                 .accessibilityAddTraits(.isHeader)
 

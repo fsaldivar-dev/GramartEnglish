@@ -32,18 +32,21 @@ struct PlacementSelfReportView: View {
                     index: 1,
                     label: "Nunca antes",
                     subtitle: "Empezamos por lo básico (A1)",
+                    hint: "Te empezamos por palabras básicas, nivel A1",
                     selfReport: .never
                 )
                 anchorButton(
                     index: 2,
                     label: "Un poco / algunas clases",
                     subtitle: "Intermedio bajo (A2-B1)",
+                    hint: "Empezamos con vocabulario intermedio bajo, A2 a B1",
                     selfReport: .some
                 )
                 anchorButton(
                     index: 3,
                     label: "Bastante, llevo años",
                     subtitle: "Intermedio alto (B1-B2)",
+                    hint: "Empezamos con vocabulario intermedio alto, B1 a B2",
                     selfReport: .lots
                 )
             }
@@ -57,7 +60,8 @@ struct PlacementSelfReportView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut("0", modifiers: [])
-            .accessibilityLabel("Empezar sin elegir nivel")
+            .accessibilityLabel("Empezar sin elegir nivel — tecla 0")
+            .accessibilityHint("Salta esta pregunta y comienza el test sin anclaje")
 
             Spacer()
         }
@@ -71,6 +75,7 @@ struct PlacementSelfReportView: View {
         index: Int,
         label: String,
         subtitle: String,
+        hint: String,
         selfReport: BackendClient.PlacementSelfReport
     ) -> some View {
         let keyLabel = String(index)
@@ -97,5 +102,6 @@ struct PlacementSelfReportView: View {
         .buttonStyle(.plain)
         .keyboardShortcut(KeyEquivalent(Character(keyLabel)), modifiers: [])
         .accessibilityLabel("Opción \(keyLabel): \(label). \(subtitle)")
+        .accessibilityHint(hint)
     }
 }
