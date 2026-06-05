@@ -109,4 +109,51 @@ final class DesignTokenContractTests: XCTestCase {
         XCTAssertNotEqual(Semantic.warning, Color.clear)
         XCTAssertNotEqual(Semantic.error, Color.clear)
     }
+
+    /// F010 (v1.11.0). Mariana's token sweep finish-line. Three new lints
+    /// in one walker so future drift fails CI with the same diagnostic
+    /// shape as the v1.9 `.system(size:)` lint:
+    ///   - `cornerRadius: N` literal → use `Radius.{sm,md,lg}`.
+    ///   - `.tint.opacity(0.X)` literal → use `Tint.{soft,medium,strong}`.
+    ///   - `.foregroundStyle(.green/.red/.orange)` raw color → use
+    ///     `Semantic.{success,error,warning}` so the WCAG-tuned light/dark
+    ///     hexes from v1.10 flow through.
+    func testNoTokenLiteralsInFeatures() throws {
+        let root = featuresRoot()
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(at: root, includingPropertiesForKeys: nil) else {
+            XCTFail("Could not enumerate Features at \(root.path)")
+            return
+        }
+        let cornerLiteral = try NSRegularExpression(pattern: #"cornerRadius:\s*\d"#)
+        let tintLiteral = try NSRegularExpression(pattern: #"\.tint\.opacity\(0\.\d+\)"#)
+        let rawColor = try NSRegularExpression(
+            pattern: #"\.foregroundStyle\(\.(green|red|orange)\)"#)
+        var offenders: [String] = []
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let rel = url.path.replacingOccurrences(of: root.path + "/", with: "")
+            for (i, raw) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                let line = String(raw)
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") { continue }
+                let range = NSRange(line.startIndex..<line.endIndex, in: line)
+                if cornerLiteral.firstMatch(in: line, range: range) != nil {
+                    offenders.append("\(rel):\(i + 1) cornerRadius literal → \(trimmed)")
+                }
+                if tintLiteral.firstMatch(in: line, range: range) != nil {
+                    offenders.append("\(rel):\(i + 1) .tint.opacity literal → \(trimmed)")
+                }
+                if rawColor.firstMatch(in: line, range: range) != nil {
+                    offenders.append("\(rel):\(i + 1) raw color → \(trimmed)")
+                }
+            }
+        }
+        XCTAssertTrue(
+            offenders.isEmpty,
+            "F010 Item 1: token literals found in Sources/Features/. " +
+            "Use Radius.*, Tint.*, or Semantic.* tokens instead. Offenders:\n" +
+            offenders.joined(separator: "\n")
+        )
+    }
 }

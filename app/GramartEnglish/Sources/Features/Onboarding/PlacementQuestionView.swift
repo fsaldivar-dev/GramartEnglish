@@ -71,7 +71,7 @@ struct PlacementQuestionView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(.tint.opacity(0.12), in: Capsule())
+                .background(.tint.opacity(Tint.soft), in: Capsule())
                 .accessibilityLabel("Palabra objetivo: \(question.word)")
         }
     }
@@ -166,7 +166,8 @@ struct OptionCard: View {
                 Text(keyLabel)
                     .font(.system(.body, design: .monospaced))
                     .frame(width: 28, height: 28)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                    // F010 (v1.11.0). 6pt → Radius.sm (8); 10pt → Radius.md (12).
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: Radius.sm))
                 Text(text)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +175,7 @@ struct OptionCard: View {
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
         }
         .buttonStyle(.plain)
         .keyboardShortcut(KeyEquivalent(Character(keyLabel)), modifiers: [])

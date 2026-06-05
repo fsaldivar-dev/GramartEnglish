@@ -6,21 +6,41 @@ struct LessonSummaryView: View {
     let summary: BackendClient.LessonSummaryResponse
     let mode: LessonMode
     let perModeMastered: [String: Int]?
+    /// F010 Item 3 (v1.11.0). Priya's P1 — a snapshot for a DIFFERENT
+    /// in-flight lesson surfaces a "Continuar lección anterior" CTA.
+    /// When nil, or when its `lessonId` matches the summary we're
+    /// rendering, the card stays hidden. We pass the snapshot rather
+    /// than reading the store inline so the view stays pure and
+    /// testable.
+    let resumableSnapshot: LessonStateSnapshot?
     let onStartAnother: () -> Void
     let onBackHome: () -> Void
+    let onResumeLesson: () -> Void
 
     init(
         summary: BackendClient.LessonSummaryResponse,
         mode: LessonMode = .readPickMeaning,
         perModeMastered: [String: Int]? = nil,
+        resumableSnapshot: LessonStateSnapshot? = nil,
         onStartAnother: @escaping () -> Void,
-        onBackHome: @escaping () -> Void
+        onBackHome: @escaping () -> Void,
+        onResumeLesson: @escaping () -> Void = {}
     ) {
         self.summary = summary
         self.mode = mode
         self.perModeMastered = perModeMastered
+        self.resumableSnapshot = resumableSnapshot
         self.onStartAnother = onStartAnother
         self.onBackHome = onBackHome
+        self.onResumeLesson = onResumeLesson
+    }
+
+    /// Exposed for tests — pinning the visibility predicate keeps the
+    /// "different lesson AND non-nil snapshot" rule from drifting into
+    /// the view body where it'd be harder to assert on.
+    var shouldShowResumeCard: Bool {
+        guard let snap = resumableSnapshot else { return false }
+        return snap.lessonId != summary.lessonId
     }
 
     /// F007 (v1.8.0). Emoji → SF Symbol migration. Emojis don't honor the
@@ -103,6 +123,22 @@ struct LessonSummaryView: View {
             }
 
             Spacer()
+
+            if shouldShowResumeCard, let snap = resumableSnapshot {
+                // F010 Item 3 (v1.11.0). Above the primary CTAs so the
+                // returning learner reads it before clicking "empezar
+                // otra lección" and dropping their in-flight progress.
+                // F010 v1.11.0 patch (Priya Polish A). `totalCount` was
+                // hardcoded to nil until the snapshot started carrying the
+                // lesson length — the subtitle now renders the preferred
+                // "Pregunta X de Y" form when the snapshot is from a
+                // v1.11.0+ build (falls back to "Pregunta X" otherwise).
+                ResumeLessonCard(
+                    currentQuestionIndex: snap.currentQuestionIndex,
+                    totalCount: snap.totalCount,
+                    onResume: onResumeLesson
+                )
+            }
 
             VStack(spacing: 12) {
                 Button("Empezar otra lección", action: onStartAnother)
