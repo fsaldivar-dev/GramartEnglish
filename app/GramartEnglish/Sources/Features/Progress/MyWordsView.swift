@@ -64,7 +64,8 @@ struct MyWordsView: View {
     private func row(mode: LessonMode, mastered: Int) -> some View {
         HStack(spacing: 14) {
             Text(badge(for: mode))
-                .font(.system(size: 28))
+                // F008 Item 2 (v1.9.0). Token sweep — 28pt literal.
+                .font(.system(.title, design: .rounded))
                 .frame(width: 44, height: 44)
                 .background(.background.secondary, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
@@ -83,7 +84,8 @@ struct MyWordsView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+        // F008 Item 2 (v1.9.0). Token sweep — 12pt radius → Radius.md.
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: Radius.md))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(mode.displayName): \(mastered) palabras dominadas")
     }

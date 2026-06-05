@@ -47,6 +47,60 @@ final class DesignTokenContractTests: XCTestCase {
         XCTAssertLessThan(Tint.strong, 1.0)
     }
 
+    /// F008 Item 2 (v1.9.0). Lint: no `.system(size: N)` literal may appear
+    /// inside `Sources/Features/`. The contract is "feature views consume
+    /// the Dynamic-Type-relative `.font(.system(.TextStyle, ...))` API and
+    /// never hardcode a point size". A point literal there is the v1.8.0
+    /// `LessonSummaryView` 80pt overflow bug waiting to happen again.
+    ///
+    /// Comment lines mentioning the old API in their backstory are excluded
+    /// — the diagnostic is about call-sites, not documentation.
+    func testNoHardcodedSystemSizeLiteralsInFeatures() throws {
+        let root = featuresRoot()
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(at: root, includingPropertiesForKeys: nil) else {
+            XCTFail("Could not enumerate Features at \(root.path)")
+            return
+        }
+        var offenders: [String] = []
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let rel = url.path.replacingOccurrences(of: root.path + "/", with: "")
+            for (i, raw) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                let line = String(raw)
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                // Skip `//` and `///` comment lines — backstory references
+                // to the removed API are fine.
+                if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") { continue }
+                if line.contains(".system(size:") {
+                    offenders.append("\(rel):\(i + 1) → \(trimmed)")
+                }
+            }
+        }
+        XCTAssertTrue(
+            offenders.isEmpty,
+            "F008 Item 2: hardcoded `.system(size: …)` literals found in " +
+            "Sources/Features/. Use Dynamic-Type-relative fonts (e.g. " +
+            "`.font(.system(.title, design: .rounded))`) with " +
+            "`minimumScaleFactor(...)` instead. Offenders:\n" +
+            offenders.joined(separator: "\n")
+        )
+    }
+
+    /// Walks up from this test file to the `Sources/Features/` directory.
+    /// Mirrors `SpeechCallSiteAuditTests.sourcesRoot()` so any future repo
+    /// reorganization breaks both audits at the same time.
+    private func featuresRoot() -> URL {
+        let here = URL(fileURLWithPath: #filePath)
+        let pkgRoot = here
+            .deletingLastPathComponent()  // Unit/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // GramartEnglish/
+        return pkgRoot
+            .appendingPathComponent("Sources", isDirectory: true)
+            .appendingPathComponent("Features", isDirectory: true)
+    }
+
     func testSemanticColorsExist() {
         // We can't reliably compare SwiftUI `Color` instances for equality
         // across platforms, but we can at least confirm that the symbols
