@@ -70,9 +70,12 @@ describe('POST /v1/lessons — F008 falseFriendEs propagation', () => {
       payload: { level: 'A1', mode: 'read_pick_meaning' },
     });
     expect(res.statusCode).toBe(200);
-    // A1 has no belt entries; every question must omit the field (or set
-    // it to undefined which JSON.stringify drops).
+    // F009 (v1.10.0) added A1 belt entries (`large`, `rope`, `once`, `soap`).
+    // The contract under test is "non-belt words omit the field" — assert
+    // that explicitly by skipping known A1 belt entries.
+    const a1Belt = new Set(['large', 'rope', 'once', 'soap']);
     for (const q of res.json().questions as Array<{ word: string; falseFriendEs?: string }>) {
+      if (a1Belt.has(q.word)) continue;
       expect(q.falseFriendEs).toBeUndefined();
     }
   });

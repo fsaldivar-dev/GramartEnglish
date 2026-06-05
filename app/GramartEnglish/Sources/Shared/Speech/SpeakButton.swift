@@ -1,6 +1,14 @@
 import SwiftUI
 
 struct SpeakButton: View {
+    /// F009 v1.10.0 blocker fix (Priya). Observe the shared `SpeechService`
+    /// so the icon + a11y label flip the same tick the user hits ⌘M, even
+    /// on already-rendered question views. Pre-fix, `body` read
+    /// `SpeechService.shared.isMuted` (a plain property), so SwiftUI had
+    /// no dependency to track and the indicator only refreshed at the
+    /// next question boundary.
+    @ObservedObject private var speech = SpeechService.shared
+
     let text: String
     var shortcut: KeyEquivalent? = nil
     var label: String = "Escuchar"
@@ -14,17 +22,31 @@ struct SpeakButton: View {
     /// inglés" — misleading because the audio is a full example sentence.
     var accessibilityLabelOverride: String? = nil
 
-    private var symbol: String {
-        rate == .slow ? "tortoise.fill" : "speaker.wave.2.fill"
+    /// F009 Item 4 (v1.10.0). Priya's panel: the v1.9.0 dimming was a
+    /// good first signal but a learner who's used to seeing the speaker
+    /// icon doesn't immediately read "dim" as "muted". Swap to the
+    /// `speaker.slash.fill` glyph (same SF Symbol family as the chrome
+    /// `MuteToggleButton`) so the affordance is visually consistent.
+    /// Tap behavior is unchanged — the v1.4.1 F3 `isUserInitiated`
+    /// bypass still plays audio on explicit tap.
+    private func symbolName(isMuted: Bool) -> String {
+        if isMuted { return "speaker.slash.fill" }
+        return rate == .slow ? "tortoise.fill" : "speaker.wave.2.fill"
     }
 
-    private var a11yLabel: String {
+    private func a11yLabel(isMuted: Bool) -> String {
+        let base: String
         if let accessibilityLabelOverride {
-            return accessibilityLabelOverride
+            base = accessibilityLabelOverride
+        } else {
+            base = rate == .slow
+                ? "Reproducir palabra en inglés despacio"
+                : "Reproducir palabra en inglés"
         }
-        return rate == .slow
-            ? "Reproducir palabra en inglés despacio"
-            : "Reproducir palabra en inglés"
+        // VoiceOver suffix so screen-reader users learn the muted state
+        // even when the slash glyph isn't visually informative for them.
+        // Spanish wording matches the chrome MuteToggleButton's locale.
+        return isMuted ? "\(base) (audio silenciado)" : base
     }
 
     private var a11yHint: String {
@@ -43,21 +65,21 @@ struct SpeakButton: View {
         // v1.9.0 polish (Priya v1.10 #1). When the global mute is on, dim the
         // speaker glyph so the user has a visual trust signal that audio
         // won't fire — explicit taps still bypass mute (v1.4.1 F3), but the
-        // icon should warn before they tap. Reading the shared service in
-        // the view body picks up flips driven by `MuteToggleButton`.
-        let isMuted = SpeechService.shared.isMuted
+        // icon should warn before they tap. F009 v1.10.0: read the value
+        // off the `@ObservedObject` so SwiftUI redraws on every flip.
+        let isMuted = speech.isMuted
         let button = Button {
             // v1.4.1 F3: explicit user tap → bypass the mute toggle.
-            SpeechService.shared.speakEnglish(text, rate: rate, isUserInitiated: true)
+            speech.speakEnglish(text, rate: rate, isUserInitiated: true)
         } label: {
-            Image(systemName: symbol)
+            Image(systemName: symbolName(isMuted: isMuted))
                 .font(.system(size: size))
                 .foregroundStyle(isMuted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .padding(8)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(a11yLabel)
+        .accessibilityLabel(a11yLabel(isMuted: isMuted))
         .accessibilityHint(a11yHint)
 
         if let shortcut {

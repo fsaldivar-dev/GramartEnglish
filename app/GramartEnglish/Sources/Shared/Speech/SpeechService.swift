@@ -41,7 +41,7 @@ public enum SpeechRate: Sendable, Equatable {
 /// can't be called from them. Instead we hop to `DispatchQueue.main` inside
 /// the method — `AVSpeechSynthesizer` is single-thread-confined to main
 /// anyway, so this funnel is the right place to enforce it.
-public final class SpeechService: @unchecked Sendable {
+public final class SpeechService: ObservableObject, @unchecked Sendable {
     public static let shared = SpeechService()
 
     /// UserDefaults key for the auto-speak mute preference (v1.4.1 F3).
@@ -59,9 +59,17 @@ public final class SpeechService: @unchecked Sendable {
     /// v1.4.1 F3 — system "Do Not Disturb" / Focus detection on macOS lacks
     /// a clean public API, so we ship the user-toggle only; system-quiet
     /// awareness is deferred to v1.5+.
-    public var isMuted: Bool {
-        get { defaults.bool(forKey: Self.muteDefaultsKey) }
-        set { defaults.set(newValue, forKey: Self.muteDefaultsKey) }
+    ///
+    /// F009 v1.10.0 blocker fix (Priya): promoted from a UserDefaults
+    /// computed property to `@Published` so SwiftUI views observing
+    /// `SpeechService.shared` (notably `SpeakButton`) invalidate their
+    /// body the same tick the flag flips — previously the icon only
+    /// refreshed at the next question boundary, making ⌘M look broken
+    /// on every currently-visible speaker button. The `didSet` keeps
+    /// the UserDefaults persistence contract intact so the flag still
+    /// survives relaunch.
+    @Published public var isMuted: Bool {
+        didSet { defaults.set(isMuted, forKey: Self.muteDefaultsKey) }
     }
 
     private static var cachedVoice: [EnglishAccent: AVSpeechSynthesisVoice] = [:]
@@ -69,6 +77,7 @@ public final class SpeechService: @unchecked Sendable {
     /// `defaults` is injectable for testing; production uses `.standard`.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.isMuted = defaults.bool(forKey: Self.muteDefaultsKey)
     }
 
     /// Speaks the given English text. Cancels any utterance in progress so
