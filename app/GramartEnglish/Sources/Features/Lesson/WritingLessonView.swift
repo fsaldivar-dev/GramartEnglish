@@ -101,8 +101,10 @@ struct WritingLessonView: View {
     }
 
     /// Renders the `write_fill_gaps` scaffolding (e.g. `w__th_r`) above the
-    /// text input. The a11y label replaces every `_` with " blank " so
-    /// VoiceOver reads gaps as words instead of spelling underscores.
+    /// text input. The a11y label replaces every `_` with " espacio " so
+    /// the Spanish-locale VoiceOver synthesizer reads gaps naturally for
+    /// hispanohablantes (instead of awkwardly pronouncing the English word
+    /// "blank").
     /// `.accessibilityElement(children: .combine)` groups the scaffold with
     /// its label so VoiceOver doesn't fragment it.
     @ViewBuilder
@@ -120,13 +122,16 @@ struct WritingLessonView: View {
     }
 
     /// Builds the VoiceOver label for `write_fill_gaps`. Replaces every `_`
-    /// with " blank " (with surrounding spaces collapsed) and prefixes it
-    /// with the Spanish instruction. Pinned by `WriteFillGapsViewTests`.
+    /// with " espacio " (with surrounding spaces collapsed) and prefixes it
+    /// with the Spanish instruction. The Spanish word is intentional: the
+    /// UI is es-MX, and the Spanish VoiceOver synthesizer would otherwise
+    /// pronounce the English token "blank" awkwardly for hispanohablantes
+    /// (Principle VII). Pinned by `WriteFillGapsViewTests`.
     static func fillGapsAccessibilityLabel(for masked: String) -> String {
         var spoken = ""
         for ch in masked {
             if ch == "_" {
-                spoken += " blank "
+                spoken += " espacio "
             } else {
                 spoken.append(ch)
             }
