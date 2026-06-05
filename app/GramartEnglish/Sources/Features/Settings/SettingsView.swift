@@ -6,6 +6,12 @@ final class SettingsViewModel: ObservableObject {
     @Published var selectedLevel: String
     @Published var showResetConfirm: Bool = false
     @Published var status: String = ""
+    /// v1.4.1 F3: when true, auto-fire `speakEnglish` calls are muted; user
+    /// taps on the speaker button still play. Mirrors `SpeechService.isMuted`
+    /// and persists via UserDefaults.
+    @Published var autoSpeakEnabled: Bool {
+        didSet { SpeechService.shared.isMuted = !autoSpeakEnabled }
+    }
     private let client: BackendClient
     let onLevelChanged: (String) -> Void
     let onReset: () -> Void
@@ -13,6 +19,7 @@ final class SettingsViewModel: ObservableObject {
     init(client: BackendClient, initialLevel: String, onLevelChanged: @escaping (String) -> Void, onReset: @escaping () -> Void) {
         self.client = client
         self.selectedLevel = initialLevel
+        self.autoSpeakEnabled = !SpeechService.shared.isMuted
         self.onLevelChanged = onLevelChanged
         self.onReset = onReset
     }
@@ -92,6 +99,13 @@ struct SettingsView: View {
                 if !viewModel.status.isEmpty {
                     Text(viewModel.status).foregroundStyle(.secondary).font(.caption)
                 }
+            }
+            Section("Audio") {
+                Toggle("Reproducir audio automáticamente", isOn: $viewModel.autoSpeakEnabled)
+                    .accessibilityHint("Cuando está desactivado, la app no reproduce la palabra sola; aún puedes tocar el botón de altavoz para escucharla.")
+                Text("Tocar el botón de altavoz siempre reproduce el audio, incluso con esta opción desactivada.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("Borrar progreso") {
                 Text("Elimina todas las lecciones, dominio y placement. No se puede deshacer.")

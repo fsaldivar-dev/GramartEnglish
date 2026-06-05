@@ -33,7 +33,18 @@ public final class LessonViewModel: ObservableObject {
         do {
             let response = try await client.startLesson(level: level, mode: mode.rawValue)
             let questions = response.questions.map { q in
-                LessonQuestion(id: q.id, word: q.word, options: q.options, position: q.position)
+                LessonQuestion(
+                    id: q.id,
+                    word: q.word,
+                    options: q.options,
+                    position: q.position,
+                    prompt: q.prompt,
+                    maskedWord: q.maskedWord,
+                    verbBase: q.verbBase,
+                    targetTense: q.targetTense,
+                    exampleEs: q.exampleEs,
+                    exampleEn: q.exampleEn
+                )
             }
             let state = LessonState(lessonId: response.lessonId, questions: questions)
             questionShownAt = .now
@@ -70,8 +81,10 @@ public final class LessonViewModel: ObservableObject {
         }
     }
 
-    /// Submit a typed answer (listen_type mode). Empty input is treated as skip.
-    public func answerTyped(_ text: String) async {
+    /// Submit a typed answer (listen_type, write_type_word, write_fill_gaps).
+    /// Empty input is treated as skip. `hintUsed` flips the FR-009 streak reset
+    /// on the backend (no mastery credit even on a correct typed answer).
+    public func answerTyped(_ text: String, hintUsed: Bool = false) async {
         guard case .answering(let state) = phase, let question = state.currentQuestion else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
@@ -84,6 +97,7 @@ public final class LessonViewModel: ObservableObject {
                 lessonId: state.lessonId,
                 questionId: question.id,
                 typedAnswer: trimmed,
+                hintUsed: hintUsed,
                 answerMs: elapsedMs
             )
             let outcome = AnswerOutcome(

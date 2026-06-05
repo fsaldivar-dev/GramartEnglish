@@ -19,12 +19,32 @@ public enum EnglishAccent: String, CaseIterable, Sendable {
 public final class SpeechService: @unchecked Sendable {
     public static let shared = SpeechService()
 
+    /// UserDefaults key for the auto-speak mute preference (v1.4.1 F3).
+    public static let muteDefaultsKey = "gramart.speech.muted"
+
     private let synth = AVSpeechSynthesizer()
+    private let defaults: UserDefaults
 
     /// Currently selected accent. Default: en-US.
     public var accent: EnglishAccent = .usa
 
+    /// When `true`, auto-fired `speakEnglish` calls (those without
+    /// `isUserInitiated: true`) become no-ops. User taps on the 🔊 button
+    /// still play. Persisted in UserDefaults under `muteDefaultsKey`.
+    /// v1.4.1 F3 — system "Do Not Disturb" / Focus detection on macOS lacks
+    /// a clean public API, so we ship the user-toggle only; system-quiet
+    /// awareness is deferred to v1.5+.
+    public var isMuted: Bool {
+        get { defaults.bool(forKey: Self.muteDefaultsKey) }
+        set { defaults.set(newValue, forKey: Self.muteDefaultsKey) }
+    }
+
     private static var cachedVoice: [EnglishAccent: AVSpeechSynthesisVoice] = [:]
+
+    /// `defaults` is injectable for testing; production uses `.standard`.
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     /// Speaks the given English text. Cancels any utterance in progress so
     /// rapid taps replace each other instead of queueing.
@@ -34,7 +54,14 @@ public final class SpeechService: @unchecked Sendable {
     /// roughly 85% of default, which is what Apple's own Translate app uses
     /// for single-word readings and matches the natural cadence of Google
     /// Translate per-word audio.
-    public func speakEnglish(_ text: String, rate: Float = 0.42) {
+    ///
+    /// - Parameter isUserInitiated: pass `true` from explicit user taps on
+    ///   the 🔊 button. Defaults to `false` so auto-fire callsites
+    ///   (`.onAppear`, `.onChange`) honor the mute toggle.
+    public func speakEnglish(_ text: String, rate: Float = 0.42, isUserInitiated: Bool = false) {
+        // v1.4.1 F3: mute toggle short-circuits auto-fire only — manual taps
+        // always play so users can replay a word even with auto-speak off.
+        if isMuted && !isUserInitiated { return }
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         // Hop to main so AVSpeechSynthesizer is always touched from the same

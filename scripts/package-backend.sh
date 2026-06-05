@@ -36,12 +36,14 @@ echo "[package-backend] installing prod deps"
 pushd "$BACKEND" > /dev/null
 pnpm install --prod --frozen-lockfile
 
-echo "[package-backend] bundling backend with esbuild"
-node_modules/.bin/esbuild src/server.ts \
+echo "[package-backend] bundling backend with esbuild (via pnpm dlx)"
+# esbuild lives in devDependencies which `--prod` skips. Use pnpm dlx to
+# fetch it on demand instead of pulling devDeps into the prod install.
+pnpm dlx esbuild@0.23 src/server.ts \
   --bundle \
   --platform=node \
   --target=node20 \
-  --format=cjs \
+  --format=esm \
   --external:better-sqlite3 \
   --external:hnswlib-node \
   --external:fastify \
@@ -51,7 +53,7 @@ node_modules/.bin/esbuild src/server.ts \
   --external:zod \
   --external:js-yaml \
   --external:ollama \
-  --outfile="$OUTPUT/bundle.cjs"
+  --outfile="$OUTPUT/bundle.mjs"
 
 echo "[package-backend] copying runtime + native modules"
 cp "$NODE_BIN" "$OUTPUT/node"
@@ -72,6 +74,12 @@ cp "$REPO_ROOT/specs/001-vocabulary-lesson-mvp/contracts/openapi.yaml" \
 
 echo "[package-backend] copying version.json"
 cp "$REPO_ROOT/version.json" "$OUTPUT/version.json"
+
+echo "[package-backend] copying migration SQL files"
+# runner.ts derives MIGRATIONS_DIR from import.meta.url at runtime, which in
+# the bundled layout resolves to OUTPUT (next to bundle.mjs). So the .sql
+# files have to live directly there.
+cp "$REPO_ROOT/backend/src/store/migrations"/*.sql "$OUTPUT/"
 
 SIZE_BYTES=$(du -sk "$OUTPUT" | awk '{print $1}')
 SIZE_MB=$((SIZE_BYTES / 1024))

@@ -1,8 +1,12 @@
-# GramartEnglish
+<div align="center">
+  <img src=".github/assets/app-icon.png" alt="GramartEnglish app icon" width="160" height="160" />
 
-A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
+  # GramartEnglish
 
-**Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
+
+  **Latest release** · [v1.6.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+</div>
 
 ## Principles
 
@@ -17,18 +21,18 @@ GramartEnglish is built under a written project constitution. The full ratified 
 - **Accessibility** — VoiceOver, keyboard nav, Dynamic Type, Increase Contrast
 - **Performance budgets** (≤ 2 s cold launch, ≤ 1.5 s LLM first token)
 
+## What's new
+
+- **v1.6.0 — Verb conjugation (F004 US1)** — `conjugate_pick_form` ships. Prompt: "Pasado simple de **<spanish_infinitive>**". 60 hand-curated verbs (40 A2 + 20 B1, ~50% irregular) drive a 4-option MCQ whose distractors target real L2 mistakes: over-regularized form (`goed`), base form (`go`), past participle (`gone`), and a random same-level past form as filler. Mastery is per `(word, conjugate_pick_form)` on the existing axis; `schemaVersion` stays at 3. See [specs/004-verb-conjugation/](specs/004-verb-conjugation/).
+- **v1.5.3** — hygiene patch: README freshness, two `tsc --noEmit` landmines fixed (`lessonService` missing `outcome`, `placement` `httpErrors` undefined), `CLAUDE.md` pointer updated.
+- **v1.5.0–v1.5.2** — Write modes (F003): `write_pick_word` + `write_type_word` shipped; per-mode mastery now spans read + listen + write surfaces.
+- **v1.4 — Adaptive Placement (F005)** — the placement test no longer asks 24 fixed questions across all 6 levels. Instead it adapts: an optional self-report screen anchors your starting level ("Nunca / Un poco / Bastante"), then the test ramps difficulty up or down based on your answers, finishing in 12–30 items. A user who can't read past A1 now lands at A1 instead of being randomly classified as C1. The Settings level override is unchanged and continues to constrain lesson selection end-to-end — pinned by a regression test. See [specs/005-adaptive-placement/](specs/005-adaptive-placement/).
+
 ## Active feature
 
-The current feature is `002-listening-modes` (built on top of `001-vocabulary-lesson-mvp`). Design lives under [specs/002-listening-modes/](specs/002-listening-modes/):
+Active feature: `004-verb-conjugation` (v1.6.0 shipped). Most recent design artifacts live under [specs/004-verb-conjugation/](specs/004-verb-conjugation/); prior releases under [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
-- [spec.md](specs/002-listening-modes/spec.md) — listening-modes user stories, requirements, success criteria
-- [plan.md](specs/002-listening-modes/plan.md) — implementation plan
-- [data-model.md](specs/002-listening-modes/data-model.md) — migration 0003 (per-mode mastery)
-- [contracts/openapi-delta.yaml](specs/002-listening-modes/contracts/openapi-delta.yaml) — additions on top of v1.1 contract
-- [tasks.md](specs/002-listening-modes/tasks.md) — 63 dependency-ordered tasks
-- [design/a11y-audit.md](specs/002-listening-modes/design/a11y-audit.md) — accessibility checklist for the new surfaces
-
-The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/).
+The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 
 ## Lesson modes
 
@@ -39,11 +43,15 @@ Feature 002 introduces four lesson modes, each tracked as an **independent** mas
 | `read_pick_meaning` | 📖 | See the English word in context, pick the Spanish meaning | Shipped (F001) |
 | `listen_pick_word` | 👂 | Hear audio, pick the English word from 4 options | Shipped (F002) |
 | `listen_pick_meaning` | 👂 | Hear audio, pick the Spanish meaning from 4 options | Shipped (F002) |
-| `listen_type` | ✏️ | Hear audio, type the word (typos within Levenshtein ≤ 1 accepted) | Shipped (F002) |
-| `write_pick_word`, `write_type_word` | ✏️ | Future: writing-prompt modes | Próximamente (F003) |
-| `conjugate_pick_form` | 🔁 | Future: verb conjugation drills | Próximamente (F004) |
+| `listen_type` | 🎧 | Hear audio, type the word (typos within Levenshtein ≤ 1 accepted) | Shipped (F002) |
+| `write_pick_word` | ✏️ | See the Spanish meaning, pick the English word from 4 options | Shipped (F003) |
+| `write_type_word` | ✏️ | See the Spanish meaning, type the English word (Levenshtein ≤ 1 + hint button) | Shipped (F003) |
+| `write_fill_gaps` | ✏️ | See Spanish + masked English (e.g. `w__th_r`), type the missing letters | Shipped (v1.5.0) |
+| `conjugate_pick_form` | 🔁 | See "Pasado simple de **<es>**", pick the English past form from 4 options. v1.6.0 ships simple past at A2 + B1, 60-verb corpus. | Shipped (v1.6.0 — F004 US1) |
 
-Per-mode mastery is surfaced in three places: the Home cards (pending counts + "Recomendado para ti" tag), the post-lesson summary (badge strip showing all 4 counts), and the new **Mis palabras** screen.
+Per-mode mastery is surfaced in three places: the Home cards (pending counts + "Recomendado para ti" tag), the post-lesson summary (per-mode badge strip), and the **Mis palabras** screen.
+
+**Read vs. Write modes** train the same vocabulary in opposite directions: read modes test recognition (you see English, prove you know its meaning), write modes test active recall (you see Spanish, prove you can produce the English). A word can be mastered in `read_pick_meaning` and still pending in `write_type_word` — that's the "I recognize but can't produce" gap that productive practice closes.
 
 ## Repository layout
 

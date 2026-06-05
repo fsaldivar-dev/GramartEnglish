@@ -63,7 +63,13 @@ struct ReadyFlowView: View {
                 ProgressView()
             case .welcome:
                 WelcomeView(
-                    onStart: { Task { phase = .placement; await placement.start() } },
+                    onStart: {
+                        // v1.4 F005: send the user to the self-report anchor
+                        // screen first; the test only starts after they pick
+                        // (or skip). PlacementViewModel begins in .selfReport.
+                        placement.reset()
+                        phase = .placement
+                    },
                     onSkip: { Task { await goHome(level: "A2") } }
                 )
             case .placement:
@@ -163,13 +169,17 @@ struct ReadyFlowView: View {
     @ViewBuilder
     private var placementBody: some View {
         switch placement.state {
-        case .idle, .loading, .submitting:
+        case .selfReport:
+            PlacementSelfReportView { picked in
+                Task { await placement.start(selfReport: picked) }
+            }
+        case .loading, .submitting:
             VStack(spacing: 16) {
                 ProgressView().controlSize(.large)
-                Text(placement.state == .submitting ? "Scoring…" : "Loading questions…")
+                Text(placement.state == .submitting ? "Scoring…" : "Calibrando…")
                     .foregroundStyle(.secondary)
             }
-        case .running:
+        case .question:
             if let q = placement.currentQuestion(), let p = placement.progress() {
                 PlacementQuestionView(question: q, progress: p) { idx in
                     Task { await placement.answer(idx) }
@@ -295,6 +305,34 @@ struct LessonFlowView: View {
                 progress: state.progress,
                 onAnswer: { idx in Task { await vm.answer(idx) } },
                 onTypedAnswer: { text in Task { await vm.answerTyped(text) } },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
+        case .writePickWord:
+            WritingLessonView(
+                question: q,
+                mode: mode,
+                progress: state.progress,
+                onAnswer: { idx in Task { await vm.answer(idx) } },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
+        case .writeTypeWord, .writeFillGaps:
+            WritingLessonView(
+                question: q,
+                mode: mode,
+                progress: state.progress,
+                onTypedAnswer: { text, hintUsed in
+                    Task { await vm.answerTyped(text, hintUsed: hintUsed) }
+                },
+                onSkip: { Task { await vm.skip() } },
+                onExit: onExit
+            )
+        case .conjugatePickForm:
+            ConjugationLessonView(
+                question: q,
+                progress: state.progress,
+                onAnswer: { idx in Task { await vm.answer(idx) } },
                 onSkip: { Task { await vm.skip() } },
                 onExit: onExit
             )

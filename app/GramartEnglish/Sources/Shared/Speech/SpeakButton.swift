@@ -8,7 +8,8 @@ struct SpeakButton: View {
 
     var body: some View {
         let button = Button {
-            SpeechService.shared.speakEnglish(text)
+            // v1.4.1 F3: explicit user tap → bypass the mute toggle.
+            SpeechService.shared.speakEnglish(text, isUserInitiated: true)
         } label: {
             Image(systemName: "speaker.wave.2.fill")
                 .font(.system(size: size))

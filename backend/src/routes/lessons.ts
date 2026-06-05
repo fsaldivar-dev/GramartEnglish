@@ -8,16 +8,25 @@ import { WordRepository } from '../store/wordRepository.js';
 import { MasteryRepository } from '../store/masteryRepository.js';
 import { UserRepository } from '../store/userRepository.js';
 import { LessonService } from '../lessons/lessonService.js';
+import { loadVerbCorpus } from '../store/verbRepository.js';
 
 const StartRequest = z.object({
   level: CefrLevel,
   mode: LessonMode.default('read_pick_meaning'),
+  /** Optional. Pins the RNG path through `wordSelector` + per-question
+   *  builders so tests can land on a deterministic deck composition. Not
+   *  documented in the public OpenAPI (test affordance only). */
+  seed: z.number().int().nonnegative().optional(),
 });
 const AnswerRequest = z
   .object({
     questionId: Uuid,
     optionIndex: z.number().int().min(0).max(3).optional(),
     typedAnswer: z.string().trim().min(1).max(80).optional(),
+    /** v1.3+. When true, the user revealed letters via the hint button.
+     *  Backend zeroes consecutiveCorrect on the mastery row regardless of
+     *  outcome — see FR-009. Compatible with both option and typed answers. */
+    hintUsed: z.boolean().optional(),
     answerMs: z.number().int().nonnegative(),
   })
   .refine(
@@ -32,6 +41,10 @@ const SkipRequest = z.object({
 
 export interface LessonRouteDeps {
   db: Database.Database;
+  /** v1.6+. Path to `data/cefr/` so the verb corpus for
+   *  `conjugate_pick_form` can be loaded. Tests that don't exercise
+   *  conjugation modes may omit this. */
+  corpusDir?: string;
 }
 
 export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRouteDeps): Promise<void> {
@@ -40,11 +53,13 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
   const wordRepo = new WordRepository(deps.db);
   const masteryRepo = new MasteryRepository(deps.db);
   const userRepo = new UserRepository(deps.db);
+  const verbRepo = deps.corpusDir ? loadVerbCorpus(deps.corpusDir, wordRepo) : undefined;
   const service = new LessonService({
     lessons: lessonRepo,
     questions: questionRepo,
     words: wordRepo,
     mastery: masteryRepo,
+    ...(verbRepo ? { verbs: verbRepo } : {}),
   });
 
   app.post('/v1/lessons', async (req, reply) => {
@@ -57,6 +72,7 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
         level: parsed.data.level,
         mode: parsed.data.mode,
         correlationId: req.correlationId,
+        ...(parsed.data.seed !== undefined ? { seed: parsed.data.seed } : {}),
       });
       req.log.info({ lessonId: result.lesson.id, level: parsed.data.level, mode: parsed.data.mode }, 'lesson.started');
       return { lessonId: result.lesson.id, mode: parsed.data.mode, questions: result.questions };
@@ -79,6 +95,7 @@ export async function registerLessonRoutes(app: FastifyInstance, deps: LessonRou
         questionId: body.data.questionId,
         ...(body.data.optionIndex !== undefined ? { optionIndex: body.data.optionIndex } : {}),
         ...(body.data.typedAnswer !== undefined ? { typedAnswer: body.data.typedAnswer } : {}),
+        ...(body.data.hintUsed !== undefined ? { hintUsed: body.data.hintUsed } : {}),
         answerMs: body.data.answerMs,
         userId: user.id,
       });
