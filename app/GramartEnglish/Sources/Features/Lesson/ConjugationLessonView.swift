@@ -20,7 +20,9 @@ struct ConjugationLessonView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 22) {
-                HStack {
+                HStack(spacing: Spacing.sm) {
+                    // F008 Item 1 (v1.9.0). Mute toggle, M shortcut.
+                    MuteToggleButton()
                     Button(action: onExit) {
                         Image(systemName: "xmark.circle").imageScale(.large)
                     }
