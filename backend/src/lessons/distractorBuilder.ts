@@ -27,6 +27,12 @@ function optionTextFor(word: VocabularyWordRow, mode: LessonMode): string {
     case 'read_pick_meaning':
     case 'listen_pick_meaning':
       return word.spanishOption;
+    case 'conjugate_pick_form':
+      // distractorBuilder is the legacy vocabulary path — conjugate_pick_form
+      // is routed through verbConjugationBuilder before reaching here. If we
+      // ever do hit this branch it's a programming error; emit the verb base
+      // as a defensive fallback so the lesson at least renders.
+      return word.base;
   }
 }
 

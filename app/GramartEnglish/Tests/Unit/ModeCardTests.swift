@@ -28,16 +28,16 @@ final class ModeCardTests: XCTestCase {
         XCTAssertEqual(card.title, "Leer")
     }
 
-    func testComingSoonInitRendersDisabled() {
-        // v1.5 shipped writeFillGaps; conjugatePickForm remains the placeholder.
-        let card = ModeCard(comingSoon: .conjugatePickForm)
-        XCTAssertTrue(card.comingSoon)
-        XCTAssertFalse(card.isEnabled)
-        XCTAssertFalse(card.isRecommended)
-        XCTAssertNil(card.pendingCount)
+/// v1.6.0 shipped conjugatePickForm — Conjugar is no longer a coming-soon
+    /// card. Asserting the LessonMode init produces an enabled card with the
+    /// final copy keeps the regression in place.
+    func testConjugatePickFormShipsAsEnabledCard() {
+        let card = ModeCard(mode: .conjugatePickForm, pendingCount: 4, isRecommended: false, action: {})
+        XCTAssertFalse(card.comingSoon)
+        XCTAssertTrue(card.isEnabled)
         XCTAssertEqual(card.icon, "arrow.triangle.2.circlepath")
         XCTAssertEqual(card.title, "Conjugar")
-        XCTAssertTrue(card.subtitle.contains("Próximamente"))
+        XCTAssertEqual(card.subtitle, "Lee el verbo en español, elige la forma en pasado")
     }
 
     func testActionFiresWhenEnabledAndNotComingSoon() {
@@ -58,8 +58,8 @@ final class ModeCardTests: XCTestCase {
         XCTAssertEqual(fired, 1)
     }
 
-    func testConjugateComingSoonHasCircleArrowIcon() {
-        let card = ModeCard(comingSoon: .conjugatePickForm)
+    func testConjugateShippedHasCircleArrowIcon() {
+        let card = ModeCard(mode: .conjugatePickForm, pendingCount: 0, isRecommended: false, action: {})
         XCTAssertEqual(card.icon, "arrow.triangle.2.circlepath")
         XCTAssertEqual(card.title, "Conjugar")
     }

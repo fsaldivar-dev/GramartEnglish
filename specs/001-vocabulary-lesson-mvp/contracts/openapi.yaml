@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.5.1
+  version: 1.6.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -96,15 +96,17 @@ components:
         - write_pick_word
         - write_type_word
         - write_fill_gaps
+        - conjugate_pick_form
       description: |
         The mode a lesson is played in.
-          - read_pick_meaning  (v1.0+): see English word in context, pick Spanish meaning
-          - listen_pick_word   (v1.2+): hear audio, pick English word from 4 options
-          - listen_pick_meaning(v1.2+): hear audio, pick Spanish meaning from 4 options
-          - listen_type        (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
-          - write_pick_word    (v1.3+): see Spanish meaning, pick English word from 4 options
-          - write_type_word    (v1.3+): see Spanish meaning, type the English word
-          - write_fill_gaps    (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters. Server returns `maskedWord` for every question. Words ≤ 3 letters auto-promote to a first-letter scaffold (e.g. `eat` → `e__`, `go` → `g_`); mode stays write_fill_gaps for mastery axis purity (v1.5.1+).
+          - read_pick_meaning   (v1.0+): see English word in context, pick Spanish meaning
+          - listen_pick_word    (v1.2+): hear audio, pick English word from 4 options
+          - listen_pick_meaning (v1.2+): hear audio, pick Spanish meaning from 4 options
+          - listen_type         (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
+          - write_pick_word     (v1.3+): see Spanish meaning, pick English word from 4 options
+          - write_type_word     (v1.3+): see Spanish meaning, type the English word
+          - write_fill_gaps     (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters. Server returns `maskedWord` for every question. Words ≤ 3 letters auto-promote to a first-letter scaffold (e.g. `eat` → `e__`, `go` → `g_`); mode stays write_fill_gaps for mastery axis purity (v1.5.1+).
+          - conjugate_pick_form (v1.6+): see "Pasado simple de **<es>**", pick the English past form from 4 options. Distractor recipe: [over_regularized, base, past_participle, +1 same-level past] minus collisions with the answer. F004 US1; v1.6.0 ships simple_past only, levels A2 + B1, 60-verb hand-curated corpus.
     LessonStartRequest:
       type: object
       required: [level]
@@ -145,6 +147,35 @@ components:
           maxItems: 4
           items: { type: string }
         position: { type: integer }
+        verbBase:
+          type: string
+          description: |
+            v1.6+. Populated only for `conjugate_pick_form` — English base form
+            of the verb being conjugated (e.g. "go" when the answer is "went").
+        targetTense:
+          type: string
+          enum: [simple_past]
+          description: |
+            v1.6+. Populated only for `conjugate_pick_form`. v1.6.0 ships
+            `simple_past` only; the enum reserves room for additional tenses
+            (`past_participle`, `gerund`, `third_person`) in future releases.
+        exampleEs:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            Spanish example sentence with `___` marking the verb slot
+            (e.g. "Ayer ___ tacos."). Disambiguates tenses Spanish
+            distinguishes (preterite vs imperfect) but English collapses
+            (both → "ate"). Rendered below the prompt header in a
+            secondary style so it supports — doesn't compete with — the
+            hero infinitive.
+        exampleEn:
+          type: string
+          description: |
+            v1.6.0+ (patch). Populated only for `conjugate_pick_form` —
+            English translation of `exampleEs` with the verb already
+            conjugated. The client reveals it after the user answers as
+            reinforcement, never before as a hint.
     LessonStartResponse:
       type: object
       required: [lessonId, questions]
