@@ -17,9 +17,8 @@ on:
 permissions:
   contents: write  # needed to create the GitHub Release + upload assets
 
-# v1.5.2: all JavaScript-based actions bumped to majors that ship Node 24
-# natively. See ci.yml header. FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env override
-# removed (#9 closed).
+# v1.5.2: action tags pinned to Node 24 native majors. See ci.yml header for
+# the full list. Removed v1.5.2: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env override.
 
 jobs:
   build-app:
@@ -71,7 +70,7 @@ jobs:
           echo "checksum=dist/${ASSET}.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact (always — even on push-to-main without tag)
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: GramartEnglish-${{ steps.ver.outputs.tag }}
           path: |

@@ -6,10 +6,10 @@ on:
   pull_request:
     branches: [main]
 
-# v1.5.2: all JavaScript-based actions bumped to majors that ship Node 24
-# natively (checkout@v5, setup-node@v5, upload-artifact@v5, pnpm/action-setup@v5,
-# softprops/action-gh-release@v3). The FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env
-# override is no longer needed and has been removed (#9 closed).
+# v1.5.2: action tags pinned to majors that declare Node 24 natively in their
+# action.yml (checkout@v5, setup-node@v5, pnpm/action-setup@v5,
+# softprops/action-gh-release@v3, upload-artifact@v6). Removed v1.5.2: the
+# FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env override is no longer needed.
 
 jobs:
   backend:
