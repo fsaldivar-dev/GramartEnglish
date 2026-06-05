@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.8.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.9.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -23,6 +23,13 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## What's new
 
+- **v1.9.0 — Mute toggle, token sweep, false-friend belt, summary buttons (F008, 4 locked items)** —
+  - **In-lesson mute toggle**: every lesson chrome ships a top-left mute button next to the exit X. `M` is the bare-key shortcut. Bound to the existing `SpeechService.shared.isMuted` UserDefaults flag — no more two-hop trip through Settings to silence auto-fire TTS in a cafe.
+  - **Token sweep**: `Sources/Features/` is now free of `.system(size: N)` literals — every hero font is Dynamic-Type-relative (`.font(.system(.title, design: .rounded))` + `minimumScaleFactor`). A grep-based lint in `DesignTokenContractTests` fails the build if a literal sneaks back in. Sanctioned cornerRadius literals (8/12/16) migrated to `Radius.sm/.md/.lg`.
+  - **False-friend belt**: ~10 high-frequency Spanish cognate traps (`realize`/`actually`/`library`/`exit`/`success`/`embarrassed`/`fabric`/`carpet`/`sensible`/`assist`) carry an optional `falseFriendEs` warning. Rendered as a small "OJO: …" chip in `AnswerFeedbackView` AFTER the canonical reveal — disambiguation lands at the moment of recall, not as a preemptive hint. Additive nullable column (migration 0004); `schemaVersion` stays at 3.
+  - **L1-pattern naming**: the over-regularization `feedbackHint` now names the transfer pattern explicitly — "Casi — 'goed' es el error típico **de hispanohablantes**, pero 'go' es irregular. La forma correcta es **went**." — so the learner understands WHY they wrote `goed`.
+  - **Distinct summary buttons**: "Empezar otra lección" on the lesson summary now commits straight to a new lesson in the same mode/level instead of detouring through Home. "Volver al inicio" keeps the original exit path.
+  - See [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/).
 - **v1.8.0 — Persistence, prosody, tokens, distractor hygiene (F007, 4 locked items)** —
   - **Persistence**: in-flight lesson state is now atomically persisted to `~/Library/Application Support/GramartEnglish/lesson-state.json`. Cmd+Q mid-lesson and the next launch lands you back on the same question instead of losing ~15 min of progress.
   - **Prosody**: every speaker affordance ships a "🐢 lento" companion button (shortcut `D`). Slow rate ≈ 0.35, normal stays at 0.42. Verb-intro card additionally plays the *example sentence* at both speeds, not just the verb.
@@ -37,7 +44,7 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## Active feature
 
-Active feature: `007-persistence-prosody-tokens` (v1.8.0 shipped). Most recent design artifacts live under [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/); prior releases under [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
+Active feature: `008-mute-tokens-falsefriends` (v1.9.0 shipped). Most recent design artifacts live under [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/); prior releases under [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/), [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
 The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 
