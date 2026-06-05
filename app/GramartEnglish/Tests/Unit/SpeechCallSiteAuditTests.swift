@@ -46,7 +46,7 @@ final class SpeechCallSiteAuditTests: XCTestCase {
               line: 111, userInitiated: true),
         // Shared 🔊 button used inline next to revealed words.
         .init(relativePath: "Shared/Speech/SpeakButton.swift",
-              line: 37, userInitiated: true),
+              line: 45, userInitiated: true),
     ]
 
     /// Auto-fire call-sites — `.onAppear`, `.onChange`, helper methods that
