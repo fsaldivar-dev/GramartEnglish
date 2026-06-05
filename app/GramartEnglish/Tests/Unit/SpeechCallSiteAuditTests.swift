@@ -46,7 +46,7 @@ final class SpeechCallSiteAuditTests: XCTestCase {
               line: 111, userInitiated: true),
         // Shared 🔊 button used inline next to revealed words.
         .init(relativePath: "Shared/Speech/SpeakButton.swift",
-              line: 12, userInitiated: true),
+              line: 45, userInitiated: true),
     ]
 
     /// Auto-fire call-sites — `.onAppear`, `.onChange`, helper methods that
@@ -58,11 +58,11 @@ final class SpeechCallSiteAuditTests: XCTestCase {
         .init(relativePath: "Features/Lesson/ListeningLessonView.swift",
               line: 52, userInitiated: false),
         .init(relativePath: "Features/Lesson/LessonQuestionView.swift",
-              line: 33, userInitiated: false),
+              line: 35, userInitiated: false),
         .init(relativePath: "Features/Lesson/LessonQuestionView.swift",
-              line: 34, userInitiated: false),
+              line: 36, userInitiated: false),
         .init(relativePath: "Features/Lesson/AnswerFeedbackView.swift",
-              line: 58, userInitiated: false),
+              line: 60, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",
               line: 107, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",
@@ -106,6 +106,11 @@ final class SpeechCallSiteAuditTests: XCTestCase {
                 // SpeechService.swift and contains `speakEnglish(` as part
                 // of its signature, not as a call).
                 if line.contains("func speakEnglish(") { continue }
+                // F007 (v1.8.0). SpeechService.swift owns both speakEnglish
+                // overloads; the named-rate version trampolines into the
+                // Float version inside this file. Neither line is a real
+                // user call site, so they don't belong in the audit.
+                if rel.hasSuffix("Speech/SpeechService.swift") { continue }
                 if line.contains("speakEnglish(") {
                     out.append((rel, i + 1, line))
                 }

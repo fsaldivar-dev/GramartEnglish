@@ -100,4 +100,121 @@ final class LessonViewModelTests: XCTestCase {
         guard case .failed(let msg) = vm.phase else { return XCTFail("expected failed, got \(vm.phase)") }
         XCTAssertTrue(msg.contains("HTTP 500"))
     }
+
+    // MARK: - F007 (v1.8.0): LessonStateStore wiring
+
+    private func makeViewModelWithStore(_ store: LessonStateStore) -> LessonViewModel {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [TestURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = BackendClient(baseURL: URL(string: "http://127.0.0.1:1234")!, session: session) {
+            "deadbeef-dead-4dad-8dad-deadbeefdead"
+        }
+        return LessonViewModel(client: client, level: "A1", stateStore: store)
+    }
+
+    private func freshStateStore() -> LessonStateStore {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VMTests-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let store = LessonStateStore(directory: dir)
+        store.debounceOverrideMillis = 0
+        return store
+    }
+
+    func testSnapshotPersistsOnStart() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { _ in (200, Self.startBody()) }
+        await vm.start()
+        store.flush()
+        let loaded = store.load()
+        XCTAssertNotNil(loaded)
+        XCTAssertEqual(loaded?.lessonId, "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(loaded?.phase, .answering)
+        XCTAssertEqual(loaded?.currentQuestionIndex, 0)
+    }
+
+    func testSnapshotUpdatesOnReveal() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { request in
+            if request.url?.path.hasSuffix("/lessons") ?? false { return (200, Self.startBody()) }
+            return (200, Self.answerBody(correct: true))
+        }
+        await vm.start()
+        await vm.answer(1)
+        store.flush()
+        XCTAssertEqual(store.load()?.phase, .revealing)
+    }
+
+    // F007 patch (v1.8.0) Blocker — resume routes to GET /v1/lessons/:id,
+    // never to POST /v1/lessons. Pinning this with a hard assertion so a
+    // future refactor that drops `resumeId` from `start()` fails loudly.
+
+    nonisolated private static func resumeBody() -> Data {
+        """
+        {
+          "lessonId": "11111111-1111-4111-8111-111111111111",
+          "mode": "read_pick_meaning",
+          "level": "A1",
+          "answeredCount": 4,
+          "totalCount": 10,
+          "questions": [
+            {"id":"33333333-3333-4333-8333-333333333335","word":"five","options":["A","B","C","D"],"position":4},
+            {"id":"33333333-3333-4333-8333-333333333336","word":"six","options":["A","B","C","D"],"position":5}
+          ]
+        }
+        """.data(using: .utf8)!
+    }
+
+    func testResumeUsesGetNotPostAndSurfacesBanner() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        // Class-wrapped flag — Swift 5.9 strict concurrency rejects capture of
+        // `var` by @Sendable handler. See TestFlag in ListeningLessonViewModelTests.
+        let postCalled = TestFlag()
+        TestURLProtocol.handler = { request in
+            let path = request.url?.path ?? ""
+            let method = request.httpMethod ?? ""
+            if method == "POST" && path.hasSuffix("/lessons") {
+                postCalled.value = true
+                XCTFail("Resume must not POST /lessons — that creates a new lesson row")
+                return (500, Data())
+            }
+            if method == "GET" && path.contains("/lessons/11111111-1111-4111-8111-111111111111") {
+                return (200, Self.resumeBody())
+            }
+            return (404, Data())
+        }
+        await vm.start(resumeId: "11111111-1111-4111-8111-111111111111")
+        guard case .answering(let state) = vm.phase else {
+            return XCTFail("expected answering after resume, got \(vm.phase)")
+        }
+        XCTAssertFalse(postCalled.value)
+        XCTAssertEqual(state.lessonId, "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(state.questions.count, 2, "resume returns only remaining questions")
+        XCTAssertEqual(state.currentQuestion?.word, "five")
+        XCTAssertEqual(vm.resumeBanner?.currentQuestionIndex, 4)
+        XCTAssertEqual(vm.resumeBanner?.totalCount, 10)
+    }
+
+    func testSnapshotIsClearedOnComplete() async {
+        let store = freshStateStore()
+        let vm = makeViewModelWithStore(store)
+        TestURLProtocol.handler = { request in
+            let path = request.url?.path ?? ""
+            if path.hasSuffix("/lessons") { return (200, Self.startBody()) }
+            if path.contains("/answers") { return (200, Self.answerBody(correct: true)) }
+            if path.contains("/complete") { return (200, Self.summaryBody()) }
+            return (404, Data())
+        }
+        await vm.start()
+        await vm.answer(1)
+        await vm.next()
+        await vm.answer(2)
+        await vm.next() // triggers complete
+        store.flush()
+        XCTAssertNil(store.load(), "Snapshot must be cleared after lesson completes")
+    }
 }

@@ -79,11 +79,16 @@ struct VerbIntroCard: View {
                     // v1.7.0 polish A: speaker gets the "S" keyboard shortcut
                     // matching LessonQuestionView/AnswerFeedbackView for muscle
                     // memory across surfaces.
-                    HStack(spacing: 16) {
+                    HStack(spacing: 12) {
                         Text(intro.base)
                             .font(.system(.title2, design: .rounded))
                             .fontWeight(.medium)
-                        SpeakButton(text: intro.base, shortcut: "s", label: "Escuchar")
+                        // F007 (v1.8.0). Dual-button prosody: normal "S" +
+                        // slow "D" (tortuga) so Lucía's A1 learners can hear
+                        // each phoneme before mimicking. Inline pair — the
+                        // base is short enough that wrapping is rare.
+                        SpeakButton(text: intro.base, shortcut: "s", label: "Escuchar", rate: .normal)
+                        SpeakButton(text: intro.base, shortcut: "d", label: "Despacio", rate: .slow)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("English: \(intro.base)")
@@ -99,10 +104,31 @@ struct VerbIntroCard: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.leading)
                             .environment(\.locale, Locale(identifier: "es-MX"))
-                        Text(intro.exampleEn)
-                            .font(.system(.body, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(intro.exampleEn)
+                                .font(.system(.body, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            // F007 (v1.8.0). Lucía: A1 learners need the
+                            // full example modeled, not just the verb. The
+                            // speaker pair sits inline with the English
+                            // line so it's obvious which sentence plays.
+                            // No shortcuts here — `s`/`d` are already
+                            // claimed by the base-form pair above.
+                            SpeakButton(
+                                text: intro.exampleEn,
+                                size: 14,
+                                rate: .normal,
+                                accessibilityLabelOverride: "Reproducir oración en inglés"
+                            )
+                            SpeakButton(
+                                text: intro.exampleEn,
+                                size: 14,
+                                rate: .slow,
+                                accessibilityLabelOverride: "Reproducir oración en inglés despacio"
+                            )
+                        }
                     }
                     .padding(16)
                     .frame(maxWidth: 540, alignment: .leading)

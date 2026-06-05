@@ -6,7 +6,7 @@ import type { MasteryRepository } from '../store/masteryRepository.js';
 import type { VerbRepository } from '../store/verbRepository.js';
 import { LESSON_SIZE, selectLessonWords } from './wordSelector.js';
 import { buildOptions } from './distractorBuilder.js';
-import { buildVerbQuestion, isAmbiguousForPickForm } from './verbConjugationBuilder.js';
+import { buildVerbQuestion, isAmbiguousForPickForm, overRegularize } from './verbConjugationBuilder.js';
 import { levenshteinAtMost } from './levenshtein.js';
 import { maskWord } from './gapMasker.js';
 
@@ -67,6 +67,13 @@ export interface AnswerResult {
   correctOption: string;
   canonicalDefinition: string;
   typedAnswerEcho?: string;
+  /** F007 (v1.8.0). Optional teaching string the client surfaces in
+   *  `AnswerFeedbackView` when present. Populated when the learner
+   *  committed to the over-regularized form of an irregular verb (e.g.
+   *  typed "goed" / picked an option that matches `<base>ed`), to make
+   *  the L1-interference error visible at the moment it lands instead
+   *  of letting the wrong spelling rehearse silently. Absent otherwise. */
+  feedbackHint?: string;
 }
 
 export interface LessonSummary {
@@ -272,12 +279,19 @@ export class LessonService {
         outcome: correct ? 'correct' : 'incorrect',
         ...(input.hintUsed ? { hintUsed: true } : {}),
       });
+      const hint = this.maybeOverRegularizationHint({
+        mode,
+        wordId: question.wordId,
+        committed: typedNorm,
+        correct,
+      });
       return {
         outcome: correct ? 'correct' : 'incorrect',
         correctIndex: 0,
         correctOption: word?.base ?? '',
         canonicalDefinition: word?.canonicalDefinition ?? '',
         typedAnswerEcho: typedTrimmed,
+        ...(hint ? { feedbackHint: hint } : {}),
       };
     }
 
@@ -297,12 +311,61 @@ export class LessonService {
       ...(input.hintUsed ? { hintUsed: true } : {}),
     });
 
+    const pickedOption = (question.options[input.optionIndex] ?? '').toLowerCase();
+    const hint = this.maybeOverRegularizationHint({
+      mode,
+      wordId: question.wordId,
+      committed: pickedOption,
+      correct,
+    });
     return {
       outcome: correct ? 'correct' : 'incorrect',
       correctIndex: question.correctIndex,
       correctOption: question.options[question.correctIndex] ?? '',
       canonicalDefinition: word?.canonicalDefinition ?? '',
+      ...(hint ? { feedbackHint: hint } : {}),
     };
+  }
+
+  /**
+   * F007 (v1.8.0). When the learner's committed answer matches the
+   * over-regularized form of the target verb (e.g. typed "goed" for `go`,
+   * or in a future picker variant picks an option that happens to be
+   * `<base>ed`), return a Spanish teaching string that names the error.
+   * Returns undefined for correct answers (no need to interrupt the
+   * positive feedback), for non-verb questions, or when the verbs
+   * repository is unavailable.
+   */
+  private maybeOverRegularizationHint(input: {
+    mode: LessonMode;
+    wordId: number;
+    committed: string;
+    correct: boolean;
+  }): string | undefined {
+    if (input.correct) return undefined;
+    // Surface the hint when the learner is being assessed on a verb form:
+    // conjugate_pick_form (post-F007: rare, since the option pool no longer
+    // includes the over-regularized form, but a future custom drill or
+    // distractor-pool override could resurface it — keep the defensive
+    // path) OR a typed write mode where the canonical answer is a verb
+    // base/past and the learner produced `<base>ed`.
+    const verb = this.deps.verbs?.lookupByWordId(input.wordId);
+    if (!verb) return undefined;
+    const isVerbBearingMode =
+      input.mode === 'conjugate_pick_form' ||
+      input.mode === 'write_type_word' ||
+      input.mode === 'write_fill_gaps' ||
+      input.mode === 'listen_type';
+    if (!isVerbBearingMode) return undefined;
+    const over = overRegularize(verb.base).toLowerCase();
+    if (input.committed.trim().toLowerCase() !== over) return undefined;
+    // Skip the rare case where the over-regularized spelling is also the
+    // canonical simple past (regular verbs) — there's nothing to teach.
+    if (over === verb.simplePast.toLowerCase()) return undefined;
+    return (
+      `Casi — "${overRegularize(verb.base)}" es el error típico, pero ` +
+      `"${verb.base}" es irregular. La forma correcta es **${verb.simplePast}**.`
+    );
   }
 
   submitSkip(input: {
@@ -363,6 +426,7 @@ export class LessonService {
       };
     }
     const lessonMode: LessonMode = (lesson.mode as LessonMode | undefined) ?? 'read_pick_meaning';
+    const isWriting = lessonMode === 'write_pick_word' || lessonMode === 'write_type_word' || lessonMode === 'write_fill_gaps';
     const remaining = questions
       .filter((q) => q.selectedIndex === null)
       .map((q): ClientLessonQuestion => {
@@ -373,6 +437,18 @@ export class LessonService {
           options: q.options,
           position: q.position,
         };
+        // F007 patch (v1.8.0). Match `startLesson`'s per-mode enrichment so a
+        // resumed write/fill-gaps lesson surfaces the Spanish prompt + the
+        // masked scaffold — without these the client renders a blank prompt.
+        if (isWriting && word) {
+          base.prompt = word.spanishOption;
+        }
+        if (lessonMode === 'write_fill_gaps' && word) {
+          const { masked } = maskWord(word.base);
+          if (masked && masked !== word.base) {
+            base.maskedWord = masked;
+          }
+        }
         if (lessonMode === 'conjugate_pick_form' && this.deps.verbs) {
           const verb = this.deps.verbs.lookupByWordId(q.wordId);
           if (verb) {

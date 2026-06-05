@@ -1,0 +1,37 @@
+# F007 (v1.8.0) — OpenAPI delta against v1.7.0.
+# The single schema change is an optional `feedbackHint` string on the
+# `/v1/lessons/{lessonId}/answers` and `/v1/lessons/{lessonId}/skip`
+# response. The skip path never populates it (correct-on-reveal is
+# semantically "skipped", not "incorrect"), but it remains in the schema
+# for shape consistency with the answer response.
+components:
+  schemas:
+    AnswerResult:
+      type: object
+      required: [outcome, correctIndex, correctOption, canonicalDefinition]
+      properties:
+        outcome:
+          type: string
+          enum: [correct, incorrect, skipped]
+        correctIndex:
+          type: integer
+          minimum: 0
+        correctOption:
+          type: string
+        canonicalDefinition:
+          type: string
+        typedAnswerEcho:
+          type: string
+          description: |
+            Echo of the learner's typed input for typed-write modes. Absent
+            for picker modes.
+        feedbackHint:
+          type: string
+          description: |
+            F007 (v1.8.0). Spanish teaching string surfaced post-answer when
+            the learner committed to a recognised L1-interference pattern.
+            Currently emitted for over-regularization of irregular verbs
+            (e.g. typed "goed" for `go` → `'Casi — "goed" es el error
+            típico, pero "go" es irregular. La forma correcta es **went**.'`).
+            Markdown-formatted (`**bold**` segments allowed). Absent in all
+            other cases. Clients MUST tolerate its absence.

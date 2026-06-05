@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.7.0
+  version: 1.8.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -242,6 +242,17 @@ components:
             Present only for `listen_type` (v1.2.0). Echoes the user's typed
             answer so the UI can show typo correction side-by-side with the
             canonical spelling (FR-007a).
+        feedbackHint:
+          type: string
+          description: |
+            v1.8.0 (F007). Optional Spanish teaching string surfaced
+            post-answer when the learner committed to a recognised
+            L1-interference error pattern. Currently emitted for the
+            over-regularization of irregular verbs (e.g. typed "goed" for
+            `go` → `'Casi — "goed" es el error típico, pero "go" es
+            irregular. La forma correcta es **went**.'`). Markdown-formatted
+            (`**bold**` segments allowed). Absent in all other cases;
+            clients MUST tolerate its absence.
     LessonSummaryResponse:
       type: object
       required: [lessonId, score, skipped, wrong, total, missedWords]
