@@ -291,6 +291,12 @@ public struct BackendClient: Sendable {
         /// v1.6+. For `conjugate_pick_form`: target tense. v1.6.0 ships only
         /// `"simple_past"`. Omitted for other modes.
         public let targetTense: String?
+        /// v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only — Spanish
+        /// example with `___` slot, disambiguates tense for the learner.
+        public let exampleEs: String?
+        /// v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only — English
+        /// example with the verb conjugated. Revealed post-answer.
+        public let exampleEn: String?
     }
 
     public struct StartLessonRequest: Codable, Sendable {
