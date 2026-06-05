@@ -135,17 +135,36 @@ struct ReadyFlowView: View {
             // F011 Item 3 (v1.12.0). Hidden trigger for the ⌘/ keyboard
             // shortcut — SwiftUI requires a focusable control to host
             // `.keyboardShortcut`, so we render a zero-size button and
-            // hide it from VoiceOver (the cheatsheet itself is
-            // discoverable from the Help menu wiring in
-            // `GramartEnglishApp`).
+            // hide it from VoiceOver. The Help-menu item in
+            // `GramartEnglishApp.commands` is the discoverable surface
+            // (Priya blocker 2); this hidden trigger remains as the
+            // in-window fallback for the same shortcut.
+            //
+            // F011 patch v1.12.0 (Priya blocker 3). SwiftUI on macOS
+            // doesn't stack `.sheet` from the same presenter — pressing
+            // ⌘/ while Settings or My Words is open used to toggle
+            // `showingCheatsheet = true` while the sheet silently
+            // failed to appear, so the flag got stuck and the sheet
+            // popped uninvited after the outer sheet closed. Gating
+            // the trigger behind `canShowCheatsheet` (computed at the
+            // bottom of the view) drops the keypress when another
+            // sheet is already on screen.
             Button("Atajos") { showingCheatsheet.toggle() }
                 .keyboardShortcut("/", modifiers: .command)
                 .frame(width: 0, height: 0)
                 .opacity(0)
                 .accessibilityHidden(true)
+                .disabled(!canShowCheatsheet)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { statusModel.startPolling(); await initialPhase() }
+        // F011 patch v1.12.0 (Priya blocker 2). Help-menu / ⌘/ menu
+        // item posts this notification; mirror the blocker-3 guard so
+        // a menu pick while another sheet is open is also a no-op
+        // (the user would otherwise hit the same stuck-flag bug).
+        .onReceive(NotificationCenter.default.publisher(for: .showShortcutsCheatsheet)) { _ in
+            if canShowCheatsheet { showingCheatsheet.toggle() }
+        }
         .onChange(of: placement.state) { _, newState in
             if case .finished(let result) = newState {
                 phase = .result(result)
@@ -185,6 +204,17 @@ struct ReadyFlowView: View {
         .sheet(isPresented: $showingCheatsheet) {
             ShortcutsCheatsheetView(onClose: { showingCheatsheet = false })
         }
+    }
+
+    /// F011 patch v1.12.0 (Priya blocker 3). The cheatsheet is presented
+    /// via `.sheet` on this same view; SwiftUI on macOS doesn't stack
+    /// sheets from the same presenter, so we must reject the trigger
+    /// whenever another sheet is already up. Examples panel lives
+    /// inside `LessonFlowView` (a sub-view), so it's out of scope here
+    /// — but Settings and My Words are owned at this level and are
+    /// the two real collision sources.
+    private var canShowCheatsheet: Bool {
+        !showSettings && !showMyWords
     }
 
     private var currentLevel: String {
