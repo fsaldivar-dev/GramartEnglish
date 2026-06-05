@@ -23,7 +23,7 @@ final class VerbIntroTests: XCTestCase {
         MockURLProtocol.handler = { request in
             XCTAssertEqual(request.url?.path, "/v1/verbs/go/intro")
             XCTAssertEqual(request.httpMethod, "GET")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-client-version"), "1.7.0")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-client-version"), "1.8.0")
             let body = """
             {
               "base": "go",
@@ -90,7 +90,7 @@ final class VerbIntroTests: XCTestCase {
         }
     }
 
-    func testClientVersionIsBumpedTo170() {
-        XCTAssertEqual(BackendClient.clientVersion, "1.7.0")
+    func testClientVersionIsBumpedTo180() {
+        XCTAssertEqual(BackendClient.clientVersion, "1.8.0")
     }
 }
