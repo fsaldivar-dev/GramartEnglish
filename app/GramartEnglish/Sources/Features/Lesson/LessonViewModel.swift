@@ -127,7 +127,10 @@ public final class LessonViewModel: ObservableObject {
                     verbBase: q.verbBase,
                     targetTense: q.targetTense,
                     exampleEs: q.exampleEs,
-                    exampleEn: q.exampleEn
+                    exampleEn: q.exampleEn,
+                    // F008 Item 3 (v1.9.0). Forward the optional false-friend
+                    // warning so AnswerFeedbackView can render it post-answer.
+                    falseFriendEs: q.falseFriendEs
                 )
             }
             let state = LessonState(lessonId: lessonId, questions: questions)
