@@ -70,7 +70,8 @@ struct ModeCard: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(16)
+            // F011 (v1.12.0). Padding-literal sweep — 16pt → Spacing.md.
+            .padding(Spacing.md)
             .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
             // F010 (v1.11.0). 14pt is between md=12 and lg=16; we round
             // DOWN to Radius.md to preserve the visual rhythm (Mariana:

@@ -130,7 +130,8 @@ struct VerbIntroCard: View {
                             )
                         }
                     }
-                    .padding(16)
+                    // F011 (v1.12.0). Padding-literal sweep — 16pt → Spacing.md.
+                    .padding(Spacing.md)
                     .frame(maxWidth: 540, alignment: .leading)
                     .background(
                         // F008 Item 2 (v1.9.0). Token sweep — 12pt radius → Radius.md.

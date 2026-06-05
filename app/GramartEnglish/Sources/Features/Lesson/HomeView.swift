@@ -67,7 +67,8 @@ struct HomeView: View {
                     .foregroundStyle(.tertiary)
                     .padding(.top, 8)
             }
-            .padding(32)
+            // F011 (v1.12.0). Padding-literal sweep — 32pt → Spacing.xl.
+            .padding(Spacing.xl)
             .accessibilityElement(children: .contain)
         }
     }

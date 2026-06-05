@@ -61,7 +61,11 @@ struct ExamplesPanelView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(20)
+        // F011 (v1.12.0). Padding-literal sweep — 20pt rounds to Spacing.lg
+        // (24) per the v1.11 mapping rubric (between sm=12 and lg=24; rounding
+        // up to lg keeps the side-panel padding clearly distinct from the row
+        // gap and matches the surrounding card density).
+        .padding(Spacing.lg)
         .frame(minWidth: 360, idealWidth: 420, minHeight: 280)
         .task { if case .idle = viewModel.state { await viewModel.load() } }
     }
