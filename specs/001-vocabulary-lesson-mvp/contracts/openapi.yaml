@@ -104,7 +104,7 @@ components:
           - listen_type        (v1.2+): hear audio, type the word (Levenshtein ≤ 1)
           - write_pick_word    (v1.3+): see Spanish meaning, pick English word from 4 options
           - write_type_word    (v1.3+): see Spanish meaning, type the English word
-          - write_fill_gaps    (v1.3+ placeholder, ships v1.4): see Spanish + masked English (e.g. `w__th_r`), type the gaps
+          - write_fill_gaps    (v1.5+): see Spanish + masked English (e.g. `w__th_r`), type the missing letters (server returns `maskedWord` per question; words ≤ 3 letters auto-promote to plain typed input — `maskedWord` omitted, mode unchanged)
     LessonStartRequest:
       type: object
       required: [level]
@@ -129,6 +129,15 @@ components:
             v1.3+. Spanish meaning the client renders as the question stimulus
             for write modes (`write_pick_word`, `write_type_word`,
             `write_fill_gaps`). Absent for read + listen modes.
+        maskedWord:
+          type: string
+          description: |
+            v1.5+. Scaffolded English word with underscores in removed
+            positions (e.g. `w__th_r`). Populated ONLY for `write_fill_gaps`
+            and only when the target word is long enough (> 3 letters). For
+            shorter words the server auto-promotes the question to plain
+            typed input and omits this field — clients then render the
+            question identically to `write_type_word`.
         options:
           type: array
           minItems: 4

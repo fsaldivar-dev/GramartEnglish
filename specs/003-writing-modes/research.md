@@ -39,6 +39,17 @@ Decisions specific to F003. F001/F002 decisions are inherited unchanged.
 
 US3 is **P3 / deferred** in the F003 task list — landing v1.3 with US1+US2 first. The masking logic + spec are captured here so US3 can land in v1.4 without re-research.
 
+**Note on the cap (added v1.5.0 post-PR-#7 review)**: rules 2 and 3
+("vowels first, then weak consonants `h w y`") are a removal *menu*, not a
+guarantee that 40 % is always reached. If a word has no removable weak
+consonants after the vowel pass and the gap ratio is still below 40 %,
+the algorithm stops there — the 50 % cap (rule 4) and the "preserve
+non-weak consonants" implicit invariant win. Example: `opportunity`
+masks to `opp_rt_n_t_` (4/11 ≈ 36 %), below the 40 % target but stable
+because removing `p`, `r`, or `t` would push past the cap on the next
+pass. This is documentation completeness, not a defect — the algorithm
+is unchanged.
+
 ---
 
 ## 2. Hint button mastery accounting (FR-009)

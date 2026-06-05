@@ -14,13 +14,26 @@ public struct LessonQuestion: Equatable, Sendable, Identifiable {
     /// `write_fill_gaps`). `nil` for read + listen modes — those keep
     /// rendering `word` as before.
     public let prompt: String?
+    /// v1.5+. Scaffolded English word with underscores marking the letters
+    /// the user must type. Populated only for `write_fill_gaps` questions
+    /// where the target word is long enough (server auto-promotes shorter
+    /// words to plain typed input and omits this field).
+    public let maskedWord: String?
 
-    public init(id: String, word: String, options: [String], position: Int, prompt: String? = nil) {
+    public init(
+        id: String,
+        word: String,
+        options: [String],
+        position: Int,
+        prompt: String? = nil,
+        maskedWord: String? = nil
+    ) {
         self.id = id
         self.word = word
         self.options = options
         self.position = position
         self.prompt = prompt
+        self.maskedWord = maskedWord
     }
 }
 

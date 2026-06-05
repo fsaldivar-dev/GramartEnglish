@@ -7,7 +7,7 @@ public enum LessonMode: String, Codable, CaseIterable, Sendable, Equatable {
     case listenType = "listen_type"
     case writePickWord = "write_pick_word"
     case writeTypeWord = "write_type_word"
-    case writeFillGaps = "write_fill_gaps"  // v1.4 placeholder; excluded from SHIPPED_MODES
+    case writeFillGaps = "write_fill_gaps"  // v1.5: shipped — included in SHIPPED_MODES
 
     /// SF Symbol name suitable for `Image(systemName:)`.
     public var iconSystemName: String {
@@ -65,7 +65,8 @@ public enum LessonMode: String, Codable, CaseIterable, Sendable, Equatable {
     }
 }
 
-/// Modes shipped in v1.3. `writeFillGaps` ships in v1.4.
+/// Modes shipped in v1.5 (F003 US3 lands `writeFillGaps`). The Home grid
+/// renders one card per entry; `ComingSoonMode` covers anything not yet here.
 public let SHIPPED_MODES: [LessonMode] = [
     .readPickMeaning,
     .listenPickWord,
@@ -73,31 +74,28 @@ public let SHIPPED_MODES: [LessonMode] = [
     .listenType,
     .writePickWord,
     .writeTypeWord,
+    .writeFillGaps,
 ]
 
 /// A placeholder for Home cards that represent yet-unshipped modes. Raw
 /// values are stable so they can become mastery rows when the feature ships.
 public enum ComingSoonMode: String, CaseIterable, Sendable {
-    case writeFillGaps = "write_fill_gaps"
     case conjugatePickForm = "conjugate_pick_form"
 
     public var iconSystemName: String {
         switch self {
-        case .writeFillGaps: return "pencil"
         case .conjugatePickForm: return "arrow.triangle.2.circlepath"
         }
     }
 
     public var displayName: String {
         switch self {
-        case .writeFillGaps: return "Escribir"
         case .conjugatePickForm: return "Conjugar"
         }
     }
 
     public var displaySubtitle: String {
         switch self {
-        case .writeFillGaps: return "Próximamente — completa la palabra con letras faltantes"
         case .conjugatePickForm: return "Próximamente — conjuga verbos en distintos tiempos"
         }
     }
