@@ -17,6 +17,11 @@ on:
 permissions:
   contents: write  # needed to create the GitHub Release + upload assets
 
+# Opt every JavaScript-based action into Node 24 ahead of GitHub's 2026-06-16
+# deadline (#9). See ci.yml for context.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build-app:
     name: Build & publish GramartEnglish.app
