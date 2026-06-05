@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.3.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.4.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -20,6 +20,10 @@ GramartEnglish is built under a written project constitution. The full ratified 
 - **Security & Privacy** — no login, no telemetry, no data leaves the device
 - **Accessibility** — VoiceOver, keyboard nav, Dynamic Type, Increase Contrast
 - **Performance budgets** (≤ 2 s cold launch, ≤ 1.5 s LLM first token)
+
+## What's new in v1.4 — Adaptive Placement (F005)
+
+The placement test no longer asks 24 fixed questions across all 6 levels. Instead it adapts: an optional self-report screen anchors your starting level ("Nunca / Un poco / Bastante"), then the test asks one question at a time and ramps difficulty up or down based on your answers, finishing in 12–30 items. A user who can't read past A1 now lands at A1 instead of being randomly classified as C1. The Settings level override is unchanged and continues to constrain lesson selection end-to-end — pinned by a regression test added in this release. See [specs/005-adaptive-placement/](specs/005-adaptive-placement/).
 
 ## Active feature
 
