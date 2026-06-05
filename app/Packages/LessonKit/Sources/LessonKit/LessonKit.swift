@@ -73,6 +73,12 @@ public struct AnswerOutcome: Equatable, Sendable {
     public let correctIndex: Int
     public let correctOption: String
     public let canonicalDefinition: String
+    /// F007 (v1.8.0). Optional teaching string supplied by the backend when
+    /// the learner committed to a recognisable error pattern (currently:
+    /// over-regularized past form of an irregular verb). The client renders
+    /// it under the wrong-answer banner in `AnswerFeedbackView`. `nil` for
+    /// correct answers and for any non-targeted error pattern.
+    public let feedbackHint: String?
 
     public init(
         questionId: String,
@@ -80,7 +86,8 @@ public struct AnswerOutcome: Equatable, Sendable {
         kind: AnswerKind,
         correctIndex: Int,
         correctOption: String,
-        canonicalDefinition: String
+        canonicalDefinition: String,
+        feedbackHint: String? = nil
     ) {
         self.questionId = questionId
         self.chosenIndex = chosenIndex
@@ -88,6 +95,7 @@ public struct AnswerOutcome: Equatable, Sendable {
         self.correctIndex = correctIndex
         self.correctOption = correctOption
         self.canonicalDefinition = canonicalDefinition
+        self.feedbackHint = feedbackHint
     }
 
     public var correct: Bool { kind == .correct }
