@@ -80,7 +80,52 @@ final class FalseFriendRenderTests: XCTestCase {
     /// idiomatic "heads up") because hispanohablantes recognise it as a
     /// stop-signal. A future copy refactor must not silently drop it.
     func test_beltCopy_startsWithOJO() {
-        let friend = "OJO: no es 'realizar' (do/carry out)"
+        let friend = "OJO: 'realize' = darse cuenta. NO es 'realizar' (que es hacer o llevar a cabo)."
         XCTAssertTrue(friend.hasPrefix("OJO"))
+    }
+
+    /// QA + Priya panel (v1.9.0 patch). The belt copy must be PURE Spanish —
+    /// no English glosses inside parentheses. The original belt mixed
+    /// languages ("OJO: no es 'librería' (bookstore — that's 'bookstore')"),
+    /// which both duplicated terms and disrupted Spanish reading flow. We
+    /// scan every shipped belt entry across A2 + B1 and assert none contain
+    /// the English-only tokens our panel called out.
+    func test_allBeltEntries_haveNoEnglishGloss() throws {
+        let bannedSubstrings = [
+            "(bookstore",
+            "(success)",
+            "(event)",
+            "(folder)",
+            "(factory)",
+            "(pregnant)",
+            "(do/carry out)",
+            "(currently/nowadays)",
+            "(attend)",
+            "(sensitive)"
+        ]
+        let levels = ["a2", "b1"]
+        for level in levels {
+            let candidates = [
+                URL(fileURLWithPath: "data/cefr/\(level).json"),
+                URL(fileURLWithPath: "../../data/cefr/\(level).json"),
+                URL(fileURLWithPath: "../../../data/cefr/\(level).json"),
+                URL(fileURLWithPath: "../../../../data/cefr/\(level).json")
+            ]
+            guard let url = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
+                XCTFail("could not locate data/cefr/\(level).json from CWD \(FileManager.default.currentDirectoryPath)")
+                continue
+            }
+            let data = try Data(contentsOf: url)
+            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
+            for entry in json {
+                guard let friend = entry["false_friend_es"] as? String else { continue }
+                for banned in bannedSubstrings {
+                    XCTAssertFalse(
+                        friend.contains(banned),
+                        "\(level).json entry for '\(entry["base"] ?? "?")' contains banned English gloss '\(banned)' in: \(friend)"
+                    )
+                }
+            }
+        }
     }
 }
