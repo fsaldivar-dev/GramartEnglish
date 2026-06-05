@@ -54,6 +54,11 @@ export interface ClientLessonQuestion {
    *  English translation with the verb already conjugated. The client
    *  reveals it after the answer for reinforcement, not before. */
   exampleEn?: string;
+  /** F008 Item 3 (v1.9.0). Spanish false-friend warning ("OJO: no es
+   *  'realizar' (do/carry out)") surfaced post-answer when the word is on
+   *  Lucía's belt. Absent for the vast majority of words. Markdown is
+   *  not used here — plain Spanish, so VoiceOver reads it cleanly. */
+  falseFriendEs?: string;
 }
 
 export interface StartLessonResult {
@@ -145,6 +150,13 @@ export class LessonService {
       // because `word` (English) is what TTS plays and what the answer key is.
       if (isWriting) {
         base.prompt = word.spanishOption;
+      }
+      // F008 Item 3 (v1.9.0). Surface Lucía's false-friend warning on every
+      // mode — the trap (e.g. mapping `library` → "librería") happens in
+      // reading, listening, AND writing equally. Client decides where to
+      // render it (currently `AnswerFeedbackView`'s post-answer panel).
+      if (word.falseFriendEs) {
+        base.falseFriendEs = word.falseFriendEs;
       }
       // v1.5 F003 US3: write_fill_gaps adds a scaffolded mask. v1.5.1 — for
       // words ≤ 3 letters the masker still auto-promotes (rule 1 in research
@@ -362,9 +374,13 @@ export class LessonService {
     // Skip the rare case where the over-regularized spelling is also the
     // canonical simple past (regular verbs) — there's nothing to teach.
     if (over === verb.simplePast.toLowerCase()) return undefined;
+    // F008 Item 3 (v1.9.0). Lucía's polish: explicitly name the L1 transfer
+    // pattern ("de hispanohablantes") so the learner understands WHY they
+    // produced the wrong form. Was: "es el error típico, pero".
     return (
-      `Casi — "${overRegularize(verb.base)}" es el error típico, pero ` +
-      `"${verb.base}" es irregular. La forma correcta es **${verb.simplePast}**.`
+      `Casi — "${overRegularize(verb.base)}" es el error típico ` +
+      `**de hispanohablantes**, pero "${verb.base}" es irregular. ` +
+      `La forma correcta es **${verb.simplePast}**.`
     );
   }
 
@@ -442,6 +458,12 @@ export class LessonService {
         // masked scaffold — without these the client renders a blank prompt.
         if (isWriting && word) {
           base.prompt = word.spanishOption;
+        }
+        // F008 Item 3 (v1.9.0). Resume path must also forward the false-
+        // friend warning so a learner who resumed mid-lesson still gets
+        // the disambiguation on the same questions a fresh start would.
+        if (word?.falseFriendEs) {
+          base.falseFriendEs = word.falseFriendEs;
         }
         if (lessonMode === 'write_fill_gaps' && word) {
           const { masked } = maskWord(word.base);

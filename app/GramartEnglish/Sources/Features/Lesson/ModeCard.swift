@@ -22,7 +22,9 @@ struct ModeCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top) {
                     Image(systemName: icon)
-                        .font(.system(size: 28, weight: .medium))
+                        // F008 Item 2 (v1.9.0). Token sweep — 28pt literal.
+                        .font(.system(.title, design: .rounded))
+                        .fontWeight(.medium)
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
                     Spacer()

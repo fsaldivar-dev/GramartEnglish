@@ -15,6 +15,9 @@ const WordFile = z.array(
     sourceTag: z.string(),
     spanishOption: z.string().min(1).max(80),
     spanishDefinition: z.string().max(200).default(''),
+    // F008 Item 3 (v1.9.0). Optional false-friend warning. JSON files use
+    // snake_case (`false_friend_es`); we normalize to camelCase here.
+    false_friend_es: z.string().max(200).optional(),
   }),
 );
 
@@ -43,9 +46,11 @@ export function loadCorpusIfEmpty(db: Database.Database, corpusDir: string): Loa
     if (!raw.trim()) continue;
     const parsed = WordFile.parse(JSON.parse(raw));
     for (const w of parsed) {
+      const { false_friend_es: falseFriendEs, ...rest } = w;
       collected.push({
-        ...w,
+        ...rest,
         addedAt,
+        ...(falseFriendEs ? { falseFriendEs } : {}),
       });
     }
   }

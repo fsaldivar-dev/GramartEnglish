@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.8.0
+  version: 1.9.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -176,6 +176,18 @@ components:
             English translation of `exampleEs` with the verb already
             conjugated. The client reveals it after the user answers as
             reinforcement, never before as a hint.
+        falseFriendEs:
+          type: string
+          description: |
+            v1.9.0 (F008 Item 3). Optional Spanish warning surfaced when
+            the target word has a high-frequency Spanish look-alike with
+            a different meaning (e.g. `realize` → `"OJO: no es 'realizar'
+            (do/carry out)"`). Populated on every mode the belt word
+            appears in (read/listen/write/conjugate), not just one. The
+            client renders it as a warning chip in the post-answer
+            feedback panel so the disambiguation lands at the moment of
+            recall, not preemptively. Absent for the ~98% of words without
+            a belt entry; clients MUST tolerate its absence.
     LessonStartResponse:
       type: object
       required: [lessonId, questions]

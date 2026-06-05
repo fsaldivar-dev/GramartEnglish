@@ -91,6 +91,10 @@ describe('LessonService — F007 feedbackHint (over-regularization)', () => {
     expect(result.feedbackHint).toContain('goed');
     expect(result.feedbackHint).toContain('went');
     expect(result.feedbackHint).toContain('irregular');
+    // F008 Item 3 (v1.9.0). Lucía's pedagogy assertion: the hint must
+    // name the L1 transfer pattern explicitly so the learner knows WHY
+    // they wrote `goed` (Spanish "regular" past `-ar/-er/-ir` + `-ed`).
+    expect(result.feedbackHint).toContain('hispanohablantes');
   });
 
   it('does NOT emit feedbackHint when learner types the canonical answer correctly', () => {

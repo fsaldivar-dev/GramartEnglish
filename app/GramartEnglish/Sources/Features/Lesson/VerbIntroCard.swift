@@ -133,7 +133,8 @@ struct VerbIntroCard: View {
                     .padding(16)
                     .frame(maxWidth: 540, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        // F008 Item 2 (v1.9.0). Token sweep — 12pt radius → Radius.md.
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                             .fill(.quaternary.opacity(0.5))
                     )
                     .accessibilityElement(children: .combine)

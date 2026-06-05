@@ -11,21 +11,33 @@ struct LessonQuestionView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
-                HStack {
+                HStack(spacing: Spacing.sm) {
+                    // F008 Item 1 (v1.9.0). Mute toggle sits left of the
+                    // exit X so reaching it doesn't require a Settings
+                    // detour mid-lesson. `⌘M` is the keyboard shortcut —
+                    // see `MuteToggleButton` for the accessibility wiring.
+                    // v1.9.0 patch (Marisol): leading Spacer pushes both
+                    // chrome buttons to the right edge of the question card.
+                    Spacer()
+                    MuteToggleButton()
                     Button(action: onExit) {
                         Image(systemName: "xmark.circle")
                             .imageScale(.large)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Salir de la lección")
-                    Spacer()
                 }
 
                 ProgressHeader(current: progress.current, total: progress.total)
 
                 HStack(spacing: 8) {
                     Text(question.word)
-                        .font(.system(size: 56, weight: .semibold, design: .rounded))
+                        // F008 Item 2 (v1.9.0). Token sweep — 56pt literal
+                        // replaced with Dynamic-Type-relative font so the
+                        // hero word doesn't overflow at accessibility5.
+                        .font(.system(.largeTitle, design: .rounded))
+                        .fontWeight(.bold)
+                        .minimumScaleFactor(0.5)
                         .accessibilityAddTraits(.isHeader)
                     SpeakButton(text: question.word, shortcut: "s", size: 22, rate: .normal)
                     // F007 (v1.8.0). Slow-rate companion for A1 self-correction.

@@ -11,7 +11,8 @@ describe('migration 0003 rollback', () => {
   it('drops non-read mastery rows and restores v2 PK on word_mastery', () => {
     const db = new Database(':memory:');
     runMigrations(db);
-    expect(getCurrentVersion(db)).toBe(3);
+    // F008 (v1.9.0): user_version is now 4 after the F008 migration.
+    expect(getCurrentVersion(db)).toBe(4);
 
     // Seed two mastery rows: one in read mode, one in listen mode.
     db.exec(`
@@ -23,7 +24,11 @@ describe('migration 0003 rollback', () => {
                ('u', 1, 'listen_pick_word',  1, 1, 0, 0, '2026-01-02', 0);
     `);
 
-    rollbackTo(db, 2);
+    // F008 (v1.9.0): walk back one step at a time — runner's rollbackTo
+    // applies the rollback for the *current* version then stops, so we
+    // call it once per step (4 → 3 → 2).
+    rollbackTo(db, 2);  // 4 → 3
+    rollbackTo(db, 2);  // 3 → 2
     expect(getCurrentVersion(db)).toBe(2);
 
     // word_mastery PK is now (userId, wordId).

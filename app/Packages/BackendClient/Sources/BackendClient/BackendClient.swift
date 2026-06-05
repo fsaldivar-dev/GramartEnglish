@@ -297,6 +297,12 @@ public struct BackendClient: Sendable {
         /// v1.6.0 patch (Blocker 2). For `conjugate_pick_form` only — English
         /// example with the verb conjugated. Revealed post-answer.
         public let exampleEn: String?
+        /// F008 Item 3 (v1.9.0). Optional Spanish warning when the word
+        /// has a high-frequency false friend in Spanish (e.g. "realize" →
+        /// "OJO: no es 'realizar' (do/carry out)"). Present on every mode
+        /// the word appears in, not just one; clients render it in the
+        /// post-answer panel. Absent for the vast majority of words.
+        public let falseFriendEs: String?
     }
 
     public struct StartLessonRequest: Codable, Sendable {
