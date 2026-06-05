@@ -13,6 +13,9 @@ import { registerLessonRoutes } from './routes/lessons.js';
 import { registerWordsRoutes } from './routes/words.js';
 import { registerProgressRoutes } from './routes/progress.js';
 import { registerMeRoutes } from './routes/me.js';
+import { registerVerbRoutes } from './routes/verbs.js';
+import { loadVerbCorpus } from './store/verbRepository.js';
+import { WordRepository } from './store/wordRepository.js';
 import { RagIndex } from './rag/index.js';
 import type Database from 'better-sqlite3';
 import { OllamaAdapter, type LlmAdapter } from './llm/ollama.js';
@@ -114,7 +117,18 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
 
   await app.register(correlationIdPlugin);
   await registerPlacementRoutes(app, { db });
-  await registerLessonRoutes(app, { db, corpusDir: join(repoRoot, 'data', 'cefr') });
+  const corpusDir = join(repoRoot, 'data', 'cefr');
+  await registerLessonRoutes(app, { db, corpusDir });
+  // F006: standalone verb-intro route. Load corpus once here (cheap) so the
+  // lesson route's internal copy isn't the only source of truth.
+  const verbRepoForRoutes = (() => {
+    try {
+      return loadVerbCorpus(corpusDir, new WordRepository(db));
+    } catch {
+      return undefined;
+    }
+  })();
+  await registerVerbRoutes(app, { verbs: verbRepoForRoutes });
 
   // RAG index: try to load on boot. If absent/mismatched, retain a non-ready
   // index so the route still works (falls back to canonical examples).
