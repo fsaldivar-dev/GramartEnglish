@@ -154,6 +154,21 @@ struct ReadyFlowView: View {
 
     private func initialPhase() async {
         await home.refresh()
+        // F007 (v1.8.0). If a persisted local snapshot matches a
+        // server-resumable lesson, jump straight into the lesson flow so the
+        // learner returns to where they left off instead of via Home's
+        // resume banner. If the snapshot is stale (server says lesson
+        // doesn't exist or has already completed), drop it.
+        if let snap = LessonStateStore.shared.load() {
+            if let p = home.progress, let resumable = p.resumable,
+               resumable.lessonId == snap.lessonId,
+               let mode = LessonMode(rawValue: snap.mode) {
+                phase = .lesson(level: snap.level, mode: mode, resumeId: snap.lessonId)
+                return
+            } else {
+                LessonStateStore.shared.clear()
+            }
+        }
         if let p = home.progress, p.lessonsCompleted > 0 || p.resumable != nil {
             phase = .home(level: p.currentLevel)
         } else {

@@ -27,17 +27,63 @@ public final class LessonViewModel: ObservableObject {
     private var questionShownAt: Date = .now
     private var lastTypedEcho: String?
     private let verbIntroSeen: VerbIntroSeenStore
+    /// F007 (v1.8.0). Persists an in-flight snapshot so Cmd+Q mid-lesson
+    /// doesn't destroy progress. The VM does not read this store — the
+    /// startup path in RootView does. The VM is the producer.
+    private let stateStore: LessonStateStore
 
     public init(
         client: BackendClient,
         level: String,
         mode: LessonMode = .readPickMeaning,
-        verbIntroSeen: VerbIntroSeenStore = .shared
+        verbIntroSeen: VerbIntroSeenStore = .shared,
+        stateStore: LessonStateStore = .shared
     ) {
         self.client = client
         self.level = level
         self.mode = mode
         self.verbIntroSeen = verbIntroSeen
+        self.stateStore = stateStore
+    }
+
+    /// F007 (v1.8.0). Builds the disk snapshot for the current phase. Returns
+    /// nil for phases where there is nothing meaningful to resume (idle,
+    /// loading, summary, failed) — the caller (`persistSnapshot`) translates
+    /// nil into a `clear()` of the store.
+    private func snapshot(for phase: Phase) -> LessonStateSnapshot? {
+        switch phase {
+        case .answering(let state):
+            return LessonStateSnapshot(
+                lessonId: state.lessonId,
+                mode: mode.rawValue,
+                level: level,
+                phase: .answering,
+                currentQuestionIndex: state.currentIndex,
+                answeredCount: state.outcomes.count
+            )
+        case .revealing(let state, _):
+            return LessonStateSnapshot(
+                lessonId: state.lessonId,
+                mode: mode.rawValue,
+                level: level,
+                phase: .revealing,
+                currentQuestionIndex: state.currentIndex,
+                answeredCount: state.outcomes.count
+            )
+        case .idle, .loading, .completing, .summary, .failed:
+            return nil
+        }
+    }
+
+    /// F007 (v1.8.0). Called on every phase transition. If the phase
+    /// represents an in-flight lesson the snapshot is saved (debounced);
+    /// otherwise the store is cleared. Idempotent.
+    private func persistSnapshot() {
+        if let snap = snapshot(for: phase) {
+            stateStore.save(snap)
+        } else {
+            stateStore.clear()
+        }
     }
 
     public func start() async {
@@ -61,6 +107,7 @@ public final class LessonViewModel: ObservableObject {
             let state = LessonState(lessonId: response.lessonId, questions: questions)
             questionShownAt = .now
             phase = .answering(state)
+            persistSnapshot()
             await presentIntroIfNeeded(for: state.currentQuestion)
         } catch {
             phase = .failed(Self.describe(error))
@@ -115,14 +162,17 @@ public final class LessonViewModel: ObservableObject {
                 kind: AnswerKind(rawValue: response.outcome.rawValue) ?? .incorrect,
                 correctIndex: response.correctIndex,
                 correctOption: response.correctOption,
-                canonicalDefinition: response.canonicalDefinition
+                canonicalDefinition: response.canonicalDefinition,
+                feedbackHint: response.feedbackHint
             )
             var updated = state
             updated.recordOutcome(outcome)
             lastTypedEcho = nil
             phase = .revealing(updated, outcome)
+            persistSnapshot()
         } catch {
             phase = .failed(Self.describe(error))
+            persistSnapshot()
         }
     }
 
@@ -151,14 +201,17 @@ public final class LessonViewModel: ObservableObject {
                 kind: AnswerKind(rawValue: response.outcome.rawValue) ?? .incorrect,
                 correctIndex: response.correctIndex,
                 correctOption: response.correctOption,
-                canonicalDefinition: response.canonicalDefinition
+                canonicalDefinition: response.canonicalDefinition,
+                feedbackHint: response.feedbackHint
             )
             var updated = state
             updated.recordOutcome(outcome)
             lastTypedEcho = response.typedAnswerEcho
             phase = .revealing(updated, outcome)
+            persistSnapshot()
         } catch {
             phase = .failed(Self.describe(error))
+            persistSnapshot()
         }
     }
 
@@ -181,13 +234,16 @@ public final class LessonViewModel: ObservableObject {
                 kind: .skipped,
                 correctIndex: response.correctIndex,
                 correctOption: response.correctOption,
-                canonicalDefinition: response.canonicalDefinition
+                canonicalDefinition: response.canonicalDefinition,
+                feedbackHint: response.feedbackHint
             )
             var updated = state
             updated.recordOutcome(outcome)
             phase = .revealing(updated, outcome)
+            persistSnapshot()
         } catch {
             phase = .failed(Self.describe(error))
+            persistSnapshot()
         }
     }
 
@@ -197,10 +253,12 @@ public final class LessonViewModel: ObservableObject {
         updated.advance()
         if updated.currentQuestion == nil {
             phase = .completing(updated)
+            persistSnapshot()
             await complete(state: updated)
         } else {
             questionShownAt = .now
             phase = .answering(updated)
+            persistSnapshot()
             await presentIntroIfNeeded(for: updated.currentQuestion)
         }
     }
@@ -209,8 +267,14 @@ public final class LessonViewModel: ObservableObject {
         do {
             let summary = try await client.completeLesson(lessonId: state.lessonId)
             phase = .summary(summary)
+            // F007: lesson is done — drop the snapshot eagerly. The
+            // debounce-flush would happen on the next user gesture, but
+            // tearing down the lesson chrome shouldn't race with persistence
+            // for state nobody can resume into.
+            stateStore.clear()
         } catch {
             phase = .failed(Self.describe(error))
+            persistSnapshot()
         }
     }
 
