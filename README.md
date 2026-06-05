@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.11.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.12.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -23,6 +23,12 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## What's new
 
+- **v1.12.0 — Polish + pedagogy round (F011, 4 locked items)** —
+  - **Lucía false-friend copy refinement**: `large` (A1) and `assist` (B1) updated to the v1.10 embedded-English style — the Spanish gloss now names the English target inline ("NO es 'largo' (que en inglés es long)", "NO es 'asistir' (que es to attend an event)") so learners who don't know the contrast verb can still resolve the trap. `success` (A2) already shipped in this style; verified.
+  - **Mariana `.padding(N)` literal sweep (bare-number subset, ~13 % of padding sites)**: 9 bare-number `.padding(N)` call-sites across `Sources/Features/` migrated to the `Spacing.*` scale (16→md, 20→lg↑, 24→lg, 28→xl↑, 32→xl). Two round-ups (20→24 in `ExamplesPanelView`, 28→32 in `ListeningLessonView`) documented inline. `DesignTokenContractTests.testNoTokenLiteralsInFeatures` gains a fourth lint regex so future drift fails CI with the same diagnostic shape as the v1.9 / v1.10 lints. **Honest framing (Mariana, v1.12.0 patch)**: this is the bare-number subset only — ~60 named-edge `.padding(.edge, N)` literals across the codebase are still untouched and deferred to v1.13. The design system is NOT "complete" this round; the lint catches the bare-number form only.
+  - **Priya keyboard cheatsheet (⌘/)**: new `ShortcutsCheatsheetView` surfaces every shortcut shipping today behind a global `⌘/` trigger — 9 entries across three sections (Audio: S/D/⌘M; Respuesta: 1–4/0/Enter/⌘H; Navegación: Esc/⌘/). Each row is a monospaced key + Spanish action; VoiceOver announces `"<key>, <action>"` as a single utterance. Hosted via a zero-size, accessibility-hidden Button in `ReadyFlowView`'s ZStack — the SwiftUI-idiomatic way to attach a global shortcut without a visible control. Esc closes via `.cancelAction`.
+  - **Snapshot `totalCount` regression net**: v1.11 Polish A plumbed `totalCount` through `ResumeLessonCard` (the consumer) but left no test on the producer side. Audit confirmed every `LessonViewModel` persistence routes through `persistSnapshot()` → `snapshot(for:)` and always sets `totalCount: state.questions.count`. New `SnapshotTotalCountTests` (5 cases) pins the invariant after start, after answer, after `dismissVerbIntro`, after skip, and after mid-lesson abandon — so the next refactor that adds a new save call-site can't silently null it.
+  - See [specs/011-polish-pedagogy-round/](specs/011-polish-pedagogy-round/).
 - **v1.11.0 — Design system completion + Resume CTA + 4 false-friends (F010, 4 locked items)** —
   - **Token sweep finished**: Mariana's v1.10 IOU paid. 13 `cornerRadius` literals, 5 `.tint.opacity` literals, and 5 raw `.green/.red/.orange` foregrounds across `Sources/Features/` (+ one in `App/RootView`) migrated to `Radius.*`, `Tint.*`, and `Semantic.*` tokens. Rounding policy: when between scale steps, round to the lower step (the two `cornerRadius: 14` literals in `ModeCard` go to `Radius.md`=12, not `Radius.lg`=16). The contract test now lints all three literal classes with the same offender-list shape as the F008 `.system(size:)` walker.
   - **Warm-tune dark Semantic palette**: dark `SemanticWarning` flips `#FBBF24` → `#F5C242` (canary → honey amber), dark `SemanticError` flips `#F87171` → `#EF5B5B` (coral-pink → saturated coral). Both still clear WCAG AA on `#1E1E1E` (warning ≈ 10.2:1, error ≈ 5.1:1) per the updated `SemanticColorsTests`. Light variants and `SemanticSuccess` are unchanged.
@@ -56,7 +62,7 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## Active feature
 
-Active feature: `010-design-system-completion` (v1.11.0 shipped). Most recent design artifacts live under [specs/010-design-system-completion/](specs/010-design-system-completion/); prior releases under [specs/009-falsefriend-bias-darkmode-assets/](specs/009-falsefriend-bias-darkmode-assets/), [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/), [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/), [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
+Active feature: `011-polish-pedagogy-round` (v1.12.0 shipped). Most recent design artifacts live under [specs/011-polish-pedagogy-round/](specs/011-polish-pedagogy-round/); prior releases under [specs/010-design-system-completion/](specs/010-design-system-completion/), [specs/009-falsefriend-bias-darkmode-assets/](specs/009-falsefriend-bias-darkmode-assets/), [specs/008-mute-tokens-falsefriends/](specs/008-mute-tokens-falsefriends/), [specs/007-persistence-prosody-tokens/](specs/007-persistence-prosody-tokens/), [specs/006-verb-intro-card/](specs/006-verb-intro-card/), [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
 The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 

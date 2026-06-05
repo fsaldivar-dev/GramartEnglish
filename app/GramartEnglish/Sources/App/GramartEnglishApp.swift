@@ -2,6 +2,19 @@ import SwiftUI
 import AppKit
 import BackendClient
 
+/// F011 patch v1.12.0 (Priya blocker 2). The ⌘`/` cheatsheet shortcut is
+/// the discovery key for every other shortcut in the app, but the
+/// shortcut itself has no surface hint. We add a native macOS Help-menu
+/// item ("Ayuda → Atajos de teclado") so users discover the cheatsheet
+/// via the menu bar; selecting it (or pressing ⌘`/` from the menu)
+/// posts this notification, which `ReadyFlowView` observes and toggles
+/// `showingCheatsheet` on. Using NotificationCenter (vs a focused
+/// binding) keeps the App-scene `.commands` block decoupled from the
+/// per-window state.
+extension Notification.Name {
+    static let showShortcutsCheatsheet = Notification.Name("com.gramart.english.showShortcutsCheatsheet")
+}
+
 @main
 struct GramartEnglishApp: App {
     @NSApplicationDelegateAdaptor(GramartAppDelegate.self) private var appDelegate
@@ -15,6 +28,20 @@ struct GramartEnglishApp: App {
                 .frame(minWidth: 900, minHeight: 640)
         }
         .windowResizability(.contentSize)
+        .commands {
+            // F011 patch v1.12.0 (Priya blocker 2). Replaces the default
+            // Help menu with a single discoverable entry that mirrors
+            // the global ⌘`/` shortcut. The shortcut is duplicated here
+            // so macOS renders it next to the menu item — that visible
+            // glyph IS the affordance that teaches the shortcut to a
+            // first-time learner.
+            CommandGroup(replacing: .help) {
+                Button("Atajos de teclado") {
+                    NotificationCenter.default.post(name: .showShortcutsCheatsheet, object: nil)
+                }
+                .keyboardShortcut("/", modifiers: .command)
+            }
+        }
     }
 }
 
