@@ -33,12 +33,16 @@ describe('GET /v1/verbs/:base/intro (F006)', () => {
     const body = res.json();
     expect(body.base).toBe('go');
     expect(body.es).toBe('ir');
-    // exampleEs keeps its `___` slot — the intro card pairs Spanish prompt
-    // shape with the fully-conjugated English translation. The slot is the
-    // visual foreshadowing of the coming question.
+    // v1.7.0 patch (Blocker 1): the question-side `exampleEs` keeps its
+    // `___` slot (conjugation drill needs the gap); the intro-side
+    // `exampleEsFilled` has the Spanish past form substituted so the
+    // teaching surface never shows a bare underscore run.
     expect(typeof body.exampleEs).toBe('string');
     expect(body.exampleEs).toContain('___');
     expect(body.exampleEs.toLowerCase()).toContain('ayer');
+    expect(typeof body.exampleEsFilled).toBe('string');
+    expect(body.exampleEsFilled).not.toContain('___');
+    expect(body.exampleEsFilled.toLowerCase()).toContain('fui');
     expect(typeof body.exampleEn).toBe('string');
     expect(body.exampleEn.toLowerCase()).toContain('went');
     expect(body.audioBase).toBe('go.mp3');

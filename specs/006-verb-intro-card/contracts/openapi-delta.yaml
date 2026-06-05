@@ -38,7 +38,7 @@ components:
   schemas:
     VerbIntro:
       type: object
-      required: [base, es, exampleEs, exampleEn, audioBase]
+      required: [base, es, exampleEs, exampleEsFilled, exampleEn, audioBase]
       properties:
         base:
           type: string
@@ -48,7 +48,16 @@ components:
           example: ir
         exampleEs:
           type: string
-          description: Spanish sentence with the past form already substituted.
+          description: |
+            Spanish sentence with the `___` slot still visible. Reused by the
+            conjugation drill where the gap is the question.
+          example: "Ayer ___ al cine con mi hermana."
+        exampleEsFilled:
+          type: string
+          description: |
+            v1.7.0: `exampleEs` with the Spanish preterite substituted into
+            the slot. Used by the verb intro card so the teaching surface
+            never shows a bare underscore run.
           example: "Ayer fui al cine con mi hermana."
         exampleEn:
           type: string
