@@ -52,13 +52,18 @@ struct PlacementSelfReportView: View {
             }
             .frame(maxWidth: 540)
 
+            // v1.4.1 F2: the skip button used to read as a plain text link
+            // ("punishment" per user feedback). Promote it to a tinted
+            // secondary button so it's clearly an equal-status option —
+            // keyboardShortcut + a11y metadata are unchanged.
             Button(action: { onPick(nil) }) {
                 Text("Empezar sin elegir")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .controlSize(.large)
             .keyboardShortcut("0", modifiers: [])
             .accessibilityLabel("Empezar sin elegir nivel — tecla 0")
             .accessibilityHint("Salta esta pregunta y comienza el test sin anclaje")

@@ -1,10 +1,33 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildServer } from '../../src/server.js';
 import { RecordedFakeLlm } from '../../src/llm/__fakes__/recorded.js';
 import { _resetPlacementStoreForTests } from '../../src/routes/placement.js';
 import type { FastifyInstance } from 'fastify';
+
+// QA caveat 1 (#7): build a `base → spanishOption` lookup from the corpus files
+// so the integration test can identify the correct option without inspecting
+// server internals. Options are the Spanish translations, shuffled per-question
+// with a deterministic seed plumbed through `placement/start`.
+const LEVELS = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2'] as const;
+function buildSpanishLookup(repoRoot: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const lvl of LEVELS) {
+    const path = join(repoRoot, 'data', 'cefr', `${lvl}.json`);
+    const words = JSON.parse(readFileSync(path, 'utf-8')) as { base: string; spanishOption: string }[];
+    for (const w of words) map.set(w.base.toLowerCase(), w.spanishOption);
+  }
+  return map;
+}
+function correctIndexFor(word: string, options: string[], lookup: Map<string, string>): number {
+  const sp = lookup.get(word.toLowerCase());
+  if (sp === undefined) throw new Error(`no spanishOption for ${word}`);
+  const idx = options.indexOf(sp);
+  if (idx < 0) throw new Error(`spanishOption ${sp} not in options ${JSON.stringify(options)} for ${word}`);
+  return idx;
+}
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const ID = '00000000-0000-4000-8000-000000000000';
@@ -84,33 +107,26 @@ describe('Adaptive placement — end-to-end flow', () => {
     app = built.app;
     const s = await start('lots');
 
-    // We need to actually pick the correct option each time. The server-side
-    // shuffle hides correctIndex, so we resort to a heuristic: try option 0,
-    // and if we observe missed answers building up we keep going — but the
-    // 'lots' anchor + lucky guessing isn't enough. So instead we use the
-    // "force-pick correct" trick: read the server's wire question, then
-    // inspect the in-memory placement store by replaying with each index.
-    //
-    // For this integration test we settle for a weaker but meaningful
-    // assertion: with selfReport=lots, the test eventually produces a result
-    // ≥ B1. The "ceiling lock" path is already proven in the unit tests.
+    // QA caveat 1 fix (#7): the deterministic `seed: 1` in `start()` makes
+    // the option shuffle reproducible; we now resolve the correct option by
+    // matching the wire `word` against the corpus `spanishOption` instead of
+    // blind-clicking 0. With selfReport=lots + every answer correct, the
+    // adaptive algorithm MUST ceiling-lock at C2.
+    const lookup = buildSpanishLookup(REPO_ROOT);
     let qId = s.question.id;
+    let qWord = s.question.word;
+    let qOptions = s.question.options;
     let last: AnswerBody | null = null;
-    // Click option 0 every time — random distractor placement means ~25%
-    // correct rate, which should still anchor above A2.
     for (let i = 0; i < 35; i += 1) {
-      last = await answer(s.placementId, qId, 0);
+      const idx = correctIndexFor(qWord, qOptions, lookup);
+      last = await answer(s.placementId, qId, idx);
       if (last.kind === 'done') break;
       qId = last.question!.id;
+      qWord = last.question!.word;
+      qOptions = last.question!.options;
     }
     expect(last?.kind).toBe('done');
-    // With random-shuffled options and a fixed click, the run terminates with
-    // SOME CEFR level. The point of this test is that the flow completes
-    // end-to-end (lots → adaptive → done) without errors, with positive
-    // itemsAdministered and a valid level. The exact level for guessing
-    // strategies is non-deterministic across distractor shuffles; that
-    // signal lives in the unit tests for `step` + `finalize`.
-    expect(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).toContain(last?.result?.estimatedLevel);
+    expect(last?.result?.estimatedLevel).toBe('C2');
     expect(last?.result?.itemsAdministered).toBeGreaterThan(0);
   });
 

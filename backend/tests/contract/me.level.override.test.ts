@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildServer } from '../../src/server.js';
@@ -76,17 +77,18 @@ describe('Settings level override regression — currentLevel flows end-to-end',
     // And the next lesson — at the new A1 level — must NOT include A2 words.
     const wordsA1 = await fetchLessonWords('A1');
     expect(wordsA1.length).toBeGreaterThan(0);
-    // Verify by checking the words returned are NOT in the previous A2 set,
-    // OR (acceptable) they're all in the A1 corpus.
-    // Stronger assertion: every word in wordsA1 is also retrievable as A1.
-    const A1_SAMPLE = new Set(['house', 'eat', 'happy', 'water', 'run', 'small', 'book', 'open', 'red', 'friend',
-                                'school', 'sleep', 'big', 'food', 'walk', 'cold', 'car', 'read', 'good', 'play',
-                                'hot', 'dog', 'cat', 'child', 'mother', 'father', 'day', 'night', 'morning', 'year',
-                                'hand', 'head', 'foot', 'white', 'black', 'blue', 'green', 'yellow', 'fast', 'slow',
-                                'money', 'work', 'name', 'time', 'door', 'window', 'give', 'take', 'see']);
-    const offCorpus = wordsA1.filter((w) => !A1_SAMPLE.has(w.toLowerCase()));
-    // Allow a small slack — the A1 corpus has ~50 words and we sampled the common 49.
-    // We assert at most 2 words fall outside our sample (i.e., 8 of 10 hit the canonical A1 set).
-    expect(offCorpus.length).toBeLessThanOrEqual(2);
+
+    // QA caveat 2 (#8): derive the expected A1 set from the corpus file at
+    // test time rather than hardcoding a 49-word snapshot. The cared-about
+    // invariant is "the override worked and the level matches", which we
+    // express as: every returned word belongs to the A1 corpus.
+    const a1Corpus = JSON.parse(
+      readFileSync(join(REPO_ROOT, 'data', 'cefr', 'a1.json'), 'utf-8'),
+    ) as { base: string; level: string }[];
+    const a1Set = new Set(a1Corpus.map((w) => w.base.toLowerCase()));
+    // Sanity: corpus is well-formed.
+    expect(a1Corpus.every((w) => w.level === 'A1')).toBe(true);
+    const offCorpus = wordsA1.filter((w) => !a1Set.has(w.toLowerCase()));
+    expect(offCorpus).toEqual([]);
   });
 });

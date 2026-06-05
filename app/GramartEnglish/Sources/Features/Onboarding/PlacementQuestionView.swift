@@ -120,9 +120,18 @@ struct ProgressHeader: View {
         return Int((Double(current) / Double(total)) * 100.0)
     }
 
+    // v1.4.1 F1: the adaptive flow can finish before reaching the cap, so
+    // when `total == 30` (the F005 adaptive max) we say "de hasta 30" to
+    // signal the upper bound. Legacy v1.3 fixed-length flows keep the bare
+    // "de N" form because there N is the exact count.
+    private static let adaptiveMax = 30
+    private var totalLabel: String {
+        total == Self.adaptiveMax ? "hasta \(total)" : "\(total)"
+    }
+
     var body: some View {
         VStack(spacing: 8) {
-            Text("Pregunta \(current) de \(total)")
+            Text("Pregunta \(current) de \(totalLabel)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ProgressView(value: Double(current), total: Double(total))
@@ -131,7 +140,7 @@ struct ProgressHeader: View {
                 .accessibilityValue(Text("\(percent) por ciento"))
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Progreso: pregunta \(current) de \(total)")
+        .accessibilityLabel("Progreso: pregunta \(current) de \(totalLabel)")
         .accessibilityValue(Text("\(percent) por ciento"))
     }
 }
