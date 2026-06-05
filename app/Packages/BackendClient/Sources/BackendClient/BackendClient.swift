@@ -12,7 +12,7 @@ public struct BackendClient: Sendable {
     /// Sent on every request as `X-Client-Version`. The backend uses this to
     /// branch placement /start between the v1.3 (legacy 24-question) and the
     /// v1.4+ (adaptive single-question) shapes.
-    public static let clientVersion = "1.5.3"
+    public static let clientVersion = "1.6.0"
 
     public let baseURL: URL
     public let session: URLSession
@@ -285,6 +285,12 @@ public struct BackendClient: Sendable {
         /// Omitted by the server when the word was short enough to auto-promote
         /// to plain typed input — clients then render exactly like `write_type_word`.
         public let maskedWord: String?
+        /// v1.6+. For `conjugate_pick_form`: English base form of the verb
+        /// (e.g. "go" when the answer is "went"). Omitted for other modes.
+        public let verbBase: String?
+        /// v1.6+. For `conjugate_pick_form`: target tense. v1.6.0 ships only
+        /// `"simple_past"`. Omitted for other modes.
+        public let targetTense: String?
     }
 
     public struct StartLessonRequest: Codable, Sendable {
