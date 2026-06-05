@@ -31,12 +31,18 @@ struct MuteToggleButton: View {
                 .imageScale(.large)
         }
         .buttonStyle(.plain)
-        .keyboardShortcut("m", modifiers: [])
+        // QA + Marisol panel (v1.9.0 patch): use ⌘M instead of bare `M`. A
+        // bare-key `M` shortcut silently toggled mute whenever the user typed
+        // a word containing the letter (mother, morning, mango) in
+        // `write_type_word` / `listen_type`. ⌘M is the HIG-correct modifier
+        // for "mute/minimize"-class global app toggles and mirrors the
+        // mitigation pattern already used by `ListeningLessonView`'s `S` key.
+        .keyboardShortcut("m", modifiers: .command)
         .accessibilityLabel("Silenciar audio")
         // VoiceOver reads label + value, so "Silenciar audio: activado"
         // tells the user the toggle is currently on without trial-and-error.
         .accessibilityValue(isMuted ? "activado" : "desactivado")
-        .accessibilityHint("Presiona M para alternar")
+        .accessibilityHint("Presiona Cmd+M para alternar")
     }
 
     private func toggle() {
