@@ -1,0 +1,12 @@
+# F009 — OpenAPI delta (v1.10.0)
+#
+# No new paths, schemas, or response shapes. F009 is implementation-only:
+# - corpus additions (data/cefr/*.json)
+# - selector bias internal to wordSelector.ts
+# - SwiftUI asset-catalog + SpeakButton glyph swap
+#
+# The only contract change is the `info.version` field in `openapi.yaml`
+# which moves from 1.9.0 → 1.10.0 in lockstep with `version.json`.
+
+info:
+  version: 1.10.0
