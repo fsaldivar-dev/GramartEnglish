@@ -135,9 +135,10 @@ struct ListeningLessonView: View {
         case .listenPickMeaning: return "¿Qué significa la palabra que escuchaste?"
         case .listenType: return "Escucha y escribe la palabra"
         case .readPickMeaning: return "¿Qué significa esta palabra?"
-        // Write modes never reach this view (RootView dispatcher routes them
-        // to WritingLessonView), but the switch must be exhaustive.
+        // Write + conjugation modes never reach this view (RootView dispatcher
+        // routes them elsewhere), but the switch must be exhaustive.
         case .writePickWord, .writeTypeWord, .writeFillGaps: return ""
+        case .conjugatePickForm: return ""
         }
     }
 }
