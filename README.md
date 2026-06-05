@@ -5,7 +5,7 @@
 
   A native macOS app that helps English learners build vocabulary at their own CEFR level (A1–C2), with optional AI-generated example sentences grounded in a curated local corpus via a local LLM (Ollama).
 
-  **Latest release** · [v1.6.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
+  **Latest release** · [v1.7.0](https://github.com/fsaldivar-dev/GramartEnglish/releases/latest)  ·  **Status**: MVP development. Spec-driven via [spec-kit](https://github.com/github/spec-kit).
 </div>
 
 ## Principles
@@ -23,6 +23,7 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## What's new
 
+- **v1.7.0 — "Conoce el verbo" micro-card (F006 US1)** — before the first `conjugate_pick_form` question for each verb you've never seen on this Mac, a one-screen scaffolding card surfaces the Spanish infinitive, English base (with audio), and one bilingual example. CTA "Listo, vamos" + Esc dismiss and mark the verb seen — never auto-shown again. New endpoint `GET /v1/verbs/{base}/intro`; persistence is local-only via `UserDefaults` under `gramart.verbIntro.seen`. No schema delta. See [specs/006-verb-intro-card/](specs/006-verb-intro-card/).
 - **v1.6.0 — Verb conjugation (F004 US1)** — `conjugate_pick_form` ships. Prompt: "Pasado simple de **<spanish_infinitive>**". 60 hand-curated verbs (40 A2 + 20 B1, ~50% irregular) drive a 4-option MCQ whose distractors target real L2 mistakes: over-regularized form (`goed`), base form (`go`), past participle (`gone`), and a random same-level past form as filler. Mastery is per `(word, conjugate_pick_form)` on the existing axis; `schemaVersion` stays at 3. See [specs/004-verb-conjugation/](specs/004-verb-conjugation/).
 - **v1.5.3** — hygiene patch: README freshness, two `tsc --noEmit` landmines fixed (`lessonService` missing `outcome`, `placement` `httpErrors` undefined), `CLAUDE.md` pointer updated.
 - **v1.5.0–v1.5.2** — Write modes (F003): `write_pick_word` + `write_type_word` shipped; per-mode mastery now spans read + listen + write surfaces.
@@ -30,7 +31,7 @@ GramartEnglish is built under a written project constitution. The full ratified 
 
 ## Active feature
 
-Active feature: `004-verb-conjugation` (v1.6.0 shipped). Most recent design artifacts live under [specs/004-verb-conjugation/](specs/004-verb-conjugation/); prior releases under [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
+Active feature: `006-verb-intro-card` (v1.7.0 shipped). Most recent design artifacts live under [specs/006-verb-intro-card/](specs/006-verb-intro-card/); prior releases under [specs/004-verb-conjugation/](specs/004-verb-conjugation/), [specs/005-adaptive-placement/](specs/005-adaptive-placement/) and [specs/003-writing-modes/](specs/003-writing-modes/).
 
 The MVP foundation (still authoritative for unchanged areas) is documented under [specs/001-vocabulary-lesson-mvp/](specs/001-vocabulary-lesson-mvp/), with listening modes in [specs/002-listening-modes/](specs/002-listening-modes/).
 

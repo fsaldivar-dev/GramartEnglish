@@ -12,7 +12,7 @@ public struct BackendClient: Sendable {
     /// Sent on every request as `X-Client-Version`. The backend uses this to
     /// branch placement /start between the v1.3 (legacy 24-question) and the
     /// v1.4+ (adaptive single-question) shapes.
-    public static let clientVersion = "1.6.0"
+    public static let clientVersion = "1.7.0"
 
     public let baseURL: URL
     public let session: URLSession
@@ -435,6 +435,55 @@ public struct BackendClient: Sendable {
 
     public func completeLesson(lessonId: String) async throws -> LessonSummaryResponse {
         try await post("/lessons/\(lessonId)/complete", body: Empty2(), as: LessonSummaryResponse.self)
+    }
+
+    // MARK: - Verb intro (F006, v1.7.0)
+
+    /// Pre-conjugation micro-card payload. Returned by
+    /// `GET /v1/verbs/{base}/intro`.
+    ///
+    /// `exampleEs` keeps its `___` slot — the conjugation drill uses it as
+    /// the question. `exampleEsFilled` (v1.7.0 patch) is the same sentence
+    /// with the Spanish past form substituted; the intro card renders that
+    /// so the teaching surface never shows a literal blank.
+    public struct VerbIntro: Codable, Sendable, Equatable {
+        public let base: String
+        public let es: String
+        public let exampleEs: String
+        public let exampleEsFilled: String
+        public let exampleEn: String
+        public let audioBase: String
+
+        public init(base: String, es: String, exampleEs: String, exampleEsFilled: String, exampleEn: String, audioBase: String) {
+            self.base = base
+            self.es = es
+            self.exampleEs = exampleEs
+            self.exampleEsFilled = exampleEsFilled
+            self.exampleEn = exampleEn
+            self.audioBase = audioBase
+        }
+    }
+
+    /// Fetches the verb intro payload. Returns `nil` on 404 (unknown verb);
+    /// throws on transport / non-404 HTTP / decode failures.
+    public func fetchVerbIntro(base: String) async throws -> VerbIntro? {
+        guard let url = URL(string: Self.apiVersionPath + "/verbs/\(base)/intro", relativeTo: baseURL) else {
+            throw BackendClientError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(correlationIdProvider(), forHTTPHeaderField: "x-correlation-id")
+        req.setValue(Self.clientVersion, forHTTPHeaderField: "x-client-version")
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: req) } catch { throw BackendClientError.transport(error) }
+        guard let http = response as? HTTPURLResponse else { throw BackendClientError.http(status: -1, body: "") }
+        if http.statusCode == 404 { return nil }
+        guard (200..<300).contains(http.statusCode) else {
+            throw BackendClientError.http(status: http.statusCode, body: String(data: data, encoding: .utf8) ?? "")
+        }
+        do { return try JSONDecoder().decode(VerbIntro.self, from: data) }
+        catch { throw BackendClientError.decoding(error) }
     }
 
     // MARK: - AI examples / definition

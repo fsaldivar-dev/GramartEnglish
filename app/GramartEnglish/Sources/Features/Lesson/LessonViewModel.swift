@@ -16,16 +16,28 @@ public final class LessonViewModel: ObservableObject {
     }
 
     @Published public private(set) var phase: Phase = .idle
+    /// F006 (v1.7.0). When non-nil, the view dispatches `VerbIntroCard`
+    /// instead of the question view for the current `.answering` state.
+    /// Set by `presentIntroIfNeeded` before the first question that targets a
+    /// previously-unseen verb; cleared by `dismissVerbIntro`.
+    @Published public private(set) var pendingIntro: BackendClient.VerbIntro?
     public let mode: LessonMode
     private let client: BackendClient
     private let level: String
     private var questionShownAt: Date = .now
     private var lastTypedEcho: String?
+    private let verbIntroSeen: VerbIntroSeenStore
 
-    public init(client: BackendClient, level: String, mode: LessonMode = .readPickMeaning) {
+    public init(
+        client: BackendClient,
+        level: String,
+        mode: LessonMode = .readPickMeaning,
+        verbIntroSeen: VerbIntroSeenStore = .shared
+    ) {
         self.client = client
         self.level = level
         self.mode = mode
+        self.verbIntroSeen = verbIntroSeen
     }
 
     public func start() async {
@@ -49,9 +61,42 @@ public final class LessonViewModel: ObservableObject {
             let state = LessonState(lessonId: response.lessonId, questions: questions)
             questionShownAt = .now
             phase = .answering(state)
+            await presentIntroIfNeeded(for: state.currentQuestion)
         } catch {
             phase = .failed(Self.describe(error))
         }
+    }
+
+    /// F006 gating. If the mode is `conjugate_pick_form` and the question's
+    /// verb base has not been dismissed before on this Mac, fetch the intro
+    /// payload and stash it in `pendingIntro`. Any failure path
+    /// (non-conjugate mode, no verbBase, already seen, 404, network error)
+    /// degrades to "no intro" — the question view renders normally.
+    func presentIntroIfNeeded(for question: LessonQuestion?) async {
+        guard mode == .conjugatePickForm,
+              let question,
+              let base = question.verbBase, !base.isEmpty,
+              !verbIntroSeen.hasSeen(base) else {
+            return
+        }
+        do {
+            if let intro = try await client.fetchVerbIntro(base: base) {
+                pendingIntro = intro
+            }
+        } catch {
+            // Degrade silently — the question view still works.
+        }
+    }
+
+    /// Called by `VerbIntroCard.onDismiss`. Marks the verb seen and clears
+    /// pendingIntro so the view falls through to the question. The order
+    /// matters: markSeen first (so a fast re-render can't re-show the card).
+    public func dismissVerbIntro() {
+        if let base = pendingIntro?.base {
+            verbIntroSeen.markSeen(base)
+        }
+        pendingIntro = nil
+        questionShownAt = .now
     }
 
     public func answer(_ optionIndex: Int) async {
@@ -156,6 +201,7 @@ public final class LessonViewModel: ObservableObject {
         } else {
             questionShownAt = .now
             phase = .answering(updated)
+            await presentIntroIfNeeded(for: updated.currentQuestion)
         }
     }
 
