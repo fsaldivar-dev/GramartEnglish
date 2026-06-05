@@ -43,6 +43,16 @@ final class GramartAppDelegate: NSObject, NSApplicationDelegate {
         }
         return true
     }
+
+    /// F007 Polish B (v1.8.0). The LessonStateStore debounces saves by 500ms
+    /// to avoid hammering disk during reveal→next bursts. Without a flush
+    /// hook a Cmd+Q within that window loses the most recent transition
+    /// (Priya's narrow-window data-loss case). NSApplication delivers
+    /// `willTerminate` synchronously enough that the `flush()` blocks the
+    /// process from exiting until the atomic write completes.
+    func applicationWillTerminate(_ notification: Notification) {
+        LessonStateStore.shared.flush()
+    }
 }
 
 @MainActor
