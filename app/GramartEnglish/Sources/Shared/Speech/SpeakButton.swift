@@ -1,6 +1,14 @@
 import SwiftUI
 
 struct SpeakButton: View {
+    /// F009 v1.10.0 blocker fix (Priya). Observe the shared `SpeechService`
+    /// so the icon + a11y label flip the same tick the user hits ⌘M, even
+    /// on already-rendered question views. Pre-fix, `body` read
+    /// `SpeechService.shared.isMuted` (a plain property), so SwiftUI had
+    /// no dependency to track and the indicator only refreshed at the
+    /// next question boundary.
+    @ObservedObject private var speech = SpeechService.shared
+
     let text: String
     var shortcut: KeyEquivalent? = nil
     var label: String = "Escuchar"
@@ -57,12 +65,12 @@ struct SpeakButton: View {
         // v1.9.0 polish (Priya v1.10 #1). When the global mute is on, dim the
         // speaker glyph so the user has a visual trust signal that audio
         // won't fire — explicit taps still bypass mute (v1.4.1 F3), but the
-        // icon should warn before they tap. Reading the shared service in
-        // the view body picks up flips driven by `MuteToggleButton`.
-        let isMuted = SpeechService.shared.isMuted
+        // icon should warn before they tap. F009 v1.10.0: read the value
+        // off the `@ObservedObject` so SwiftUI redraws on every flip.
+        let isMuted = speech.isMuted
         let button = Button {
             // v1.4.1 F3: explicit user tap → bypass the mute toggle.
-            SpeechService.shared.speakEnglish(text, rate: rate, isUserInitiated: true)
+            speech.speakEnglish(text, rate: rate, isUserInitiated: true)
         } label: {
             Image(systemName: symbolName(isMuted: isMuted))
                 .font(.system(size: size))

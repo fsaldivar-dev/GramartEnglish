@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import Combine
 @testable import GramartEnglish
 
 /// F009 Item 4 (v1.10.0). Priya's panel: every `SpeakButton` (not just
@@ -106,5 +107,56 @@ final class SpeakButtonMutedStateTests: XCTestCase {
         let override = "Reproducir el ejemplo en inglés"
         let expectedMuted = "\(override) (audio silenciado)"
         XCTAssertEqual(expectedMuted, "Reproducir el ejemplo en inglés (audio silenciado)")
+    }
+
+    // MARK: - F009 v1.10.0 BLOCKER: reactive observation pins
+
+    /// Priya's blocker (v1.10.0). Pre-fix `SpeechService` was a plain
+    /// `final class` with a UserDefaults-only `isMuted`, so SwiftUI had
+    /// no way to invalidate `SpeakButton.body` mid-question — the icon
+    /// only refreshed when a new question replaced the view. The fix
+    /// is to make the service an `ObservableObject` with `@Published`
+    /// `isMuted`. We pin both invariants here so any future refactor
+    /// that regresses to a plain property reintroduces the broken UX
+    /// at unit-test time, not on Priya's panel.
+    func test_speechServiceConformsToObservableObject() {
+        let service: Any = SpeechService.shared
+        XCTAssertTrue(
+            service is any ObservableObject,
+            "SpeechService must conform to ObservableObject so SpeakButton/MuteToggleButton observe ⌘M flips reactively"
+        )
+    }
+
+    /// Direct proof that `isMuted` mutations publish via the
+    /// `ObservableObject.objectWillChange` stream. This is the SwiftUI
+    /// contract that makes every observing `SpeakButton` redraw in
+    /// lockstep with the chrome toggle. If this test fails the speaker
+    /// icons regress to "cosmetic theater" until the next question.
+    func test_isMutedChangePublishesViaObjectWillChange() {
+        let service = SpeechService.shared
+        service.isMuted = false
+        var publishCount = 0
+        let cancellable = service.objectWillChange.sink { _ in publishCount += 1 }
+        service.isMuted = true
+        service.isMuted = false
+        XCTAssertGreaterThanOrEqual(
+            publishCount, 2,
+            "objectWillChange must fire on every isMuted mutation; got \(publishCount) emissions across 2 toggles"
+        )
+        cancellable.cancel()
+    }
+
+    /// Belt-and-braces: confirm two consecutive toggles still flip the
+    /// observable value (i.e. the `@Published` didSet hasn't been
+    /// short-circuited by a debounce or equality guard that would also
+    /// drop the publish).
+    func test_isMutedRoundTripsAfterPublishedPromotion() {
+        let service = SpeechService.shared
+        service.isMuted = false
+        XCTAssertFalse(service.isMuted)
+        service.isMuted = true
+        XCTAssertTrue(service.isMuted)
+        service.isMuted = false
+        XCTAssertFalse(service.isMuted)
     }
 }
