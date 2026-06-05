@@ -1,0 +1,172 @@
+# OpenAPI Delta — Feature 005 Adaptive Placement
+#
+# STATUS: MERGED into specs/001-vocabulary-lesson-mvp/contracts/openapi.yaml
+# on 2026-06-05. Canonical info.version bumped to 1.4.0. This file is kept as
+# a historical record of what F005 added; do not edit it further. Future
+# changes go directly into the canonical openapi.yaml.
+
+info:
+  version: 1.4.0
+
+paths:
+  /v1/placement/start:
+    post:
+      summary: Start a placement test
+      description: |
+        v1.4 (adaptive): returns ONE question + placementId + progress hint.
+        v1.3 (legacy): returns 24 questions upfront. Backend sniffs
+        `x-client-version` to pick the shape (`1.4`+ → adaptive, anything
+        else → legacy).
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementStartRequest' }
+      responses:
+        '200':
+          description: First question (v1.4) or 24 questions (legacy)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PlacementStartAdaptiveResponse'  # NEW v1.4
+                  - $ref: '#/components/schemas/PlacementStartLegacyResponse'    # v1.3
+
+  /v1/placement/answer:                  # NEW v1.4
+    post:
+      summary: Submit one placement answer and receive the next question (or final result)
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementAnswerRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementAnswerResponse' }
+        '404':
+          description: Unknown or expired placementId
+
+  /v1/placement/submit:                  # KEPT v1.3 legacy
+    post:
+      summary: (Legacy) Submit a batch of placement answers (v1.3 clients)
+      description: |
+        Untouched in v1.4 — v1.3 clients keep posting 24 answers and getting
+        an `estimatedLevel` scored by the legacy fixed-bucket scorer. New
+        v1.4 clients use `/answer` instead.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementSubmitRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementResultResponse' }
+
+components:
+  schemas:
+
+    PlacementStartRequest:
+      type: object
+      properties:
+        seed:
+          type: integer
+          description: Deterministic seed for tests.
+        selfReport:
+          type: string
+          enum: [never, some, lots]
+          nullable: true
+          description: |
+            v1.4+. Optional self-reported prior. Maps to initial levelEstimate
+            of 1.5 / 3.0 / 4.5. Absent or null → defaults to 3.5.
+
+    PlacementStartAdaptiveResponse:                     # NEW v1.4
+      type: object
+      required: [placementId, question, progress, algorithmVersion]
+      properties:
+        placementId:
+          type: string
+          format: uuid
+        question:
+          $ref: '#/components/schemas/PlacementQuestion'
+        progress:
+          type: object
+          required: [current, max]
+          properties:
+            current: { type: integer }
+            max: { type: integer }
+        algorithmVersion:
+          type: string
+          enum: [v2]
+
+    PlacementStartLegacyResponse:                       # v1.3, unchanged
+      type: object
+      required: [placementId, questions]
+      properties:
+        placementId: { type: string, format: uuid }
+        questions:
+          type: array
+          minItems: 24
+          maxItems: 24
+          items: { $ref: '#/components/schemas/PlacementQuestion' }
+
+    PlacementAnswerRequest:                             # NEW v1.4
+      type: object
+      required: [placementId, questionId, optionIndex]
+      properties:
+        placementId: { type: string, format: uuid }
+        questionId: { type: string, format: uuid }
+        optionIndex:
+          type: integer
+          minimum: -1
+          maximum: 3
+          description: |
+            0..3 = chosen option. -1 = "no lo sé" (recorded as incorrect for
+            the per-level breakdown; the algorithm treats it as a miss).
+
+    PlacementAnswerResponse:                            # NEW v1.4
+      oneOf:
+        - $ref: '#/components/schemas/PlacementAnswerContinue'
+        - $ref: '#/components/schemas/PlacementAnswerDone'
+
+    PlacementAnswerContinue:                            # NEW v1.4
+      type: object
+      required: [kind, question, progress]
+      properties:
+        kind: { type: string, enum: [continue] }
+        question: { $ref: '#/components/schemas/PlacementQuestion' }
+        progress:
+          type: object
+          required: [current, max]
+          properties:
+            current: { type: integer }
+            max: { type: integer }
+
+    PlacementAnswerDone:                                # NEW v1.4
+      type: object
+      required: [kind, result]
+      properties:
+        kind: { type: string, enum: [done] }
+        result: { $ref: '#/components/schemas/PlacementResultResponse' }
+
+    PlacementResultResponse:                            # extended (additive)
+      type: object
+      required: [estimatedLevel, perLevelScores]
+      properties:
+        estimatedLevel:
+          type: string
+          enum: [A1, A2, B1, B2, C1, C2]
+        perLevelScores:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              attempted: { type: integer }
+              correct: { type: integer }
+        algorithmVersion:                               # NEW v1.4 (optional)
+          type: string
+          enum: [v1, v2]
+        itemsAdministered:                              # NEW v1.4 (optional)
+          type: integer
+
+# No other paths touched.

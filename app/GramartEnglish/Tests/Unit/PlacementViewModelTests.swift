@@ -20,67 +20,124 @@ final class PlacementViewModelTests: XCTestCase {
         return PlacementViewModel(client: client)
     }
 
-    nonisolated private static func placementStartBody(placementId: String = "11111111-1111-4111-8111-111111111111") -> Data {
+    nonisolated private static func adaptiveStartBody(
+        placementId: String = "11111111-1111-4111-8111-111111111111",
+        questionId: String = "22222222-2222-4222-8222-222222222221"
+    ) -> Data {
         """
         {
           "placementId": "\(placementId)",
-          "questions": [
-            {"id":"22222222-2222-4222-8222-222222222221","word":"house","options":["A","B","C","D"],"level":"A1"},
-            {"id":"22222222-2222-4222-8222-222222222222","word":"eat","options":["A","B","C","D"],"level":"A1"}
-          ]
+          "question": {"id":"\(questionId)","word":"house","options":["A","B","C","D"],"level":"A1"},
+          "progress": {"current": 1, "max": 30},
+          "algorithmVersion": "v2"
         }
         """.data(using: .utf8)!
     }
 
-    func testStartLoadsQuestions() async throws {
+    nonisolated private static func continueBody(
+        nextQuestionId: String,
+        current: Int
+    ) -> Data {
+        """
+        {
+          "kind": "continue",
+          "question": {"id":"\(nextQuestionId)","word":"eat","options":["A","B","C","D"],"level":"A2"},
+          "progress": {"current": \(current), "max": 30}
+        }
+        """.data(using: .utf8)!
+    }
+
+    nonisolated private static func doneBody() -> Data {
+        """
+        {
+          "kind": "done",
+          "result": {
+            "estimatedLevel": "B1",
+            "perLevelScores": {"A1":{"attempted":2,"correct":2}},
+            "algorithmVersion": "v2",
+            "itemsAdministered": 14
+          }
+        }
+        """.data(using: .utf8)!
+    }
+
+    func testInitialStateIsSelfReport() {
+        let vm = makeViewModel()
+        XCTAssertEqual(vm.state, .selfReport)
+    }
+
+    func testStartLoadsFirstQuestion() async throws {
         let vm = makeViewModel()
         TestURLProtocol.handler = { request in
             XCTAssertTrue(request.url?.path.hasSuffix("/placement/start") ?? false)
-            return (200, Self.placementStartBody())
+            // Confirm the X-Client-Version header is set on outgoing requests.
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-client-version"), BackendClient.clientVersion)
+            return (200, Self.adaptiveStartBody())
         }
-        await vm.start()
-        guard case .running(let qs, let idx, let answers) = vm.state else {
-            return XCTFail("expected running, got \(vm.state)")
+        await vm.start(selfReport: .never)
+        guard case let .question(current, max, q) = vm.state else {
+            return XCTFail("expected .question, got \(vm.state)")
         }
-        XCTAssertEqual(qs.count, 2)
-        XCTAssertEqual(idx, 0)
-        XCTAssertEqual(answers.count, 0)
-        XCTAssertEqual(vm.progress()?.total, 2)
+        XCTAssertEqual(current, 1)
+        XCTAssertEqual(max, 30)
+        XCTAssertEqual(q.word, "house")
+        XCTAssertEqual(vm.progress()?.total, 30)
+        XCTAssertEqual(vm.currentQuestion()?.id, "22222222-2222-4222-8222-222222222221")
     }
 
-    func testAnswerAdvancesAndSubmitsAtEnd() async throws {
+    func testAnswerContinuesToNextQuestion() async throws {
         let vm = makeViewModel()
         TestURLProtocol.handler = { request in
             if request.url?.path.hasSuffix("/placement/start") ?? false {
-                return (200, Self.placementStartBody())
+                return (200, Self.adaptiveStartBody())
             }
-            // submit
-            let body = """
-            {"estimatedLevel":"B1","perLevelScores":{"A1":{"attempted":2,"correct":2}}}
-            """.data(using: .utf8)!
-            return (200, body)
+            // /answer → continue
+            return (200, Self.continueBody(nextQuestionId: "33333333-3333-4333-8333-333333333333", current: 2))
         }
-        await vm.start()
+        await vm.start(selfReport: .some)
         await vm.answer(0)
-        guard case .running(_, let idx, _) = vm.state else {
-            return XCTFail("expected still running, got \(vm.state)")
+        guard case let .question(current, _, q) = vm.state else {
+            return XCTFail("expected .question, got \(vm.state)")
         }
-        XCTAssertEqual(idx, 1)
-        await vm.answer(1)
-        guard case .finished(let result) = vm.state else {
+        XCTAssertEqual(current, 2)
+        XCTAssertEqual(q.id, "33333333-3333-4333-8333-333333333333")
+    }
+
+    func testAnswerTerminalTransitionsToFinished() async throws {
+        let vm = makeViewModel()
+        TestURLProtocol.handler = { request in
+            if request.url?.path.hasSuffix("/placement/start") ?? false {
+                return (200, Self.adaptiveStartBody())
+            }
+            return (200, Self.doneBody())
+        }
+        await vm.start(selfReport: .lots)
+        await vm.answer(2)
+        guard case let .finished(result) = vm.state else {
             return XCTFail("expected finished, got \(vm.state)")
         }
         XCTAssertEqual(result.estimatedLevel, "B1")
+        XCTAssertEqual(result.algorithmVersion, "v2")
+        XCTAssertEqual(result.itemsAdministered, 14)
     }
 
     func testHttpErrorFlowsToFailedState() async throws {
         let vm = makeViewModel()
         TestURLProtocol.handler = { _ in (500, Data("boom".utf8)) }
-        await vm.start()
+        await vm.start(selfReport: nil)
         guard case .failed(let message) = vm.state else {
             return XCTFail("expected failed, got \(vm.state)")
         }
         XCTAssertTrue(message.contains("HTTP 500"))
+    }
+
+    func testResetReturnsToSelfReport() async throws {
+        let vm = makeViewModel()
+        TestURLProtocol.handler = { _ in (200, Self.adaptiveStartBody()) }
+        await vm.start(selfReport: .never)
+        XCTAssertNotEqual(vm.state, .selfReport)
+        vm.reset()
+        XCTAssertEqual(vm.state, .selfReport)
     }
 }
 
