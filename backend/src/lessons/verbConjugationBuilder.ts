@@ -32,6 +32,30 @@ export interface BuiltConjugationQuestion {
   correctIndex: number;
   verbBase: string;
   targetTense: 'simple_past';
+  /** v1.6.0 patch (Blocker 2): Spanish example sentence with `___` slot,
+   *  rendered below the prompt header to disambiguate preterite/imperfect
+   *  collisions Spanish makes that English doesn't (e.g. "comí" vs "comía"
+   *  both → "ate"). */
+  exampleEs: string;
+  /** v1.6.0 patch (Blocker 2): English translation with the verb already
+   *  conjugated. Surfaced post-answer for reinforcement, not pre-answer. */
+  exampleEn: string;
+}
+
+/**
+ * v1.6.0 patch (Blocker 1): some English verbs spell the simple past
+ * identically to the base (`read`/`read`, `cut`/`cut`, `put`/`put`,
+ * `hit`/`hit`, `let`/`let`, `set`/`set`, `cost`/`cost`, `hurt`/`hurt`).
+ * For these, `conjugate_pick_form` is unanswerable as MCQ — the "correct"
+ * option and the "base form" distractor are spelled the same. The current
+ * A2/B1 corpus only has `read`; this guard exists so any future addition
+ * is caught before reaching the picker.
+ *
+ * The selector exposes this as a pure predicate so tests can pin the rule
+ * even if the corpus changes.
+ */
+export function isAmbiguousForPickForm(verb: { base: string; simplePast: string }): boolean {
+  return verb.base.toLowerCase() === verb.simplePast.toLowerCase();
 }
 
 export interface VerbBuilderOpts {
@@ -73,7 +97,13 @@ function makeRng(seed?: number): Rng {
  *
  *   - go    → "goed"     (not "went")
  *   - eat   → "eated"    (not "ate")
- *   - run   → "runned"   (not "ran")
+ *   - run   → "runed"    (not "ran" and not "runned" — we DELIBERATELY don't
+ *                          double the consonant. At A2 the consonant-doubling
+ *                          CVC rule isn't taught yet, so "runed" is the
+ *                          believable wrong form a learner produces. Adding
+ *                          the CVC regularizer would over-engineer the
+ *                          distractor for negligible pedagogical gain. PO+TL
+ *                          locked this choice 2026-06-05 — see this comment.)
  *   - travel→ "traveled" (matches the canonical regular past — that's fine,
  *                          collision is detected and the recipe falls back)
  *   - bake  → "bakeed"   (deliberately not deduping the trailing-e; the
@@ -142,5 +172,7 @@ export function buildVerbQuestion(
     correctIndex,
     verbBase: target.base,
     targetTense: 'simple_past',
+    exampleEs: target.exampleEs,
+    exampleEn: target.exampleEn,
   };
 }

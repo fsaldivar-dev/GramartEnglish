@@ -47,6 +47,17 @@ describe('LessonService — conjugate_pick_form', () => {
       expect(q.prompt).toMatch(/^Pasado simple de \*\*.+\*\*$/);
       expect(q.verbBase).toBeDefined();
       expect(q.targetTense).toBe('simple_past');
+      // v1.6.0 patch (Blocker 1): no ambiguous verbs (base === simple_past)
+      // reach the client. The current corpus only excluded `read`; this
+      // assertion guards against future regressions.
+      expect(q.verbBase, `verbBase should not be a base==simple_past verb`).not.toBe('read');
+      // v1.6.0 patch (Blocker 2): every conjugate question carries an
+      // example_es with a `___` slot + an example_en translation, so the
+      // client can disambiguate preterite vs imperfect.
+      expect(q.exampleEs, `q.exampleEs missing for verb ${q.verbBase}`).toBeDefined();
+      expect(q.exampleEs!).toContain('___');
+      expect(q.exampleEn, `q.exampleEn missing for verb ${q.verbBase}`).toBeDefined();
+      expect(q.exampleEn!.length).toBeGreaterThan(0);
     }
   });
 

@@ -6,7 +6,7 @@ import type { MasteryRepository } from '../store/masteryRepository.js';
 import type { VerbRepository } from '../store/verbRepository.js';
 import { LESSON_SIZE, selectLessonWords } from './wordSelector.js';
 import { buildOptions } from './distractorBuilder.js';
-import { buildVerbQuestion } from './verbConjugationBuilder.js';
+import { buildVerbQuestion, isAmbiguousForPickForm } from './verbConjugationBuilder.js';
 import { levenshteinAtMost } from './levenshtein.js';
 import { maskWord } from './gapMasker.js';
 
@@ -45,6 +45,15 @@ export interface ClientLessonQuestion {
   /** v1.6+. Populated for `conjugate_pick_form` only — target tense string
    *  (`"simple_past"` for v1.6.0). */
   targetTense?: 'simple_past';
+  /** v1.6.0 patch (Blocker 2). Populated for `conjugate_pick_form` only.
+   *  Spanish example sentence with `___` marking the verb slot. Renders
+   *  below the "Pasado simple de …" header to disambiguate tenses Spanish
+   *  distinguishes (preterite/imperfect) but English collapses. */
+  exampleEs?: string;
+  /** v1.6.0 patch (Blocker 2). Populated for `conjugate_pick_form` only.
+   *  English translation with the verb already conjugated. The client
+   *  reveals it after the answer for reinforcement, not before. */
+  exampleEn?: string;
 }
 
 export interface StartLessonResult {
@@ -163,7 +172,10 @@ export class LessonService {
       throw new Error('verb corpus not configured (conjugate_pick_form requires VerbRepository)');
     }
     const verbsRepo = this.deps.verbs;
-    const pool = verbsRepo.atLevel(input.level);
+    // v1.6.0 patch (Blocker 1): drop verbs whose base spells identically to
+    // their simple_past (e.g. read/read, cut/cut). MCQ collapses to
+    // {correct, "base"} where both are the same string — unanswerable.
+    const pool = verbsRepo.atLevel(input.level).filter((v) => !isAmbiguousForPickForm(v));
     if (pool.length < LESSON_SIZE) {
       throw new Error(
         `Not enough verbs at ${input.level} to start a ${LESSON_SIZE}-question lesson (have ${pool.length})`,
@@ -212,6 +224,8 @@ export class LessonService {
         prompt: `Pasado simple de **${verb.es}**`,
         verbBase: verb.base,
         targetTense: 'simple_past' as const,
+        exampleEs: verb.exampleEs,
+        exampleEn: verb.exampleEn,
       };
     });
     return { lesson, questions: clientQuestions };
@@ -365,6 +379,8 @@ export class LessonService {
             base.prompt = `Pasado simple de **${verb.es}**`;
             base.verbBase = verb.base;
             base.targetTense = 'simple_past';
+            base.exampleEs = verb.exampleEs;
+            base.exampleEn = verb.exampleEn;
           }
         }
         return base;
