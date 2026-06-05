@@ -96,32 +96,34 @@ final class LessonViewModelIntroGatingTests: XCTestCase {
     func testSeenVerbInConjugationModeDoesNotFetchIntro() async {
         store.markSeen("go")
         let vm = makeViewModel(mode: .conjugatePickForm)
-        var introCalled = false
+        // Class-wrapped flag — Swift 5.9 strict concurrency rejects capture of
+        // `var` by @Sendable handler. See TestFlag in ListeningLessonViewModelTests.
+        let introCalled = TestFlag()
         TestURLProtocol.handler = { request in
             let path = request.url?.path ?? ""
             if path.hasSuffix("/lessons") { return (200, Self.conjugationLessonBody()) }
-            if path.contains("/intro") { introCalled = true; return (200, Self.verbIntroBody(base: "go")) }
+            if path.contains("/intro") { introCalled.value = true; return (200, Self.verbIntroBody(base: "go")) }
             return (404, Data())
         }
         await vm.start()
         XCTAssertNil(vm.pendingIntro)
-        XCTAssertFalse(introCalled, "intro endpoint must not be called when verb is already seen")
+        XCTAssertFalse(introCalled.value, "intro endpoint must not be called when verb is already seen")
     }
 
     // MARK: - Mode scope: non-conjugate modes never trigger
 
     func testReadPickMeaningModeNeverFetchesIntroEvenForVerbWord() async {
         let vm = makeViewModel(mode: .readPickMeaning)
-        var introCalled = false
+        let introCalled = TestFlag()
         TestURLProtocol.handler = { request in
             let path = request.url?.path ?? ""
             if path.hasSuffix("/lessons") { return (200, Self.readLessonBody()) }
-            if path.contains("/intro") { introCalled = true; return (200, Self.verbIntroBody(base: "go")) }
+            if path.contains("/intro") { introCalled.value = true; return (200, Self.verbIntroBody(base: "go")) }
             return (404, Data())
         }
         await vm.start()
         XCTAssertNil(vm.pendingIntro)
-        XCTAssertFalse(introCalled, "non-conjugate modes must never call /verbs/:base/intro")
+        XCTAssertFalse(introCalled.value, "non-conjugate modes must never call /verbs/:base/intro")
     }
 
     // MARK: - Dismissal marks seen + clears state
