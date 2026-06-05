@@ -4,10 +4,13 @@ import SwiftUI
 /// always-reachable reminder of every shortcut shipping today.
 ///
 /// Background: F002–F010 layered shortcut after shortcut (`S`/`D` for audio
-/// speed, `1`–`4` for options, `⌘H` for hints, `⌘,` for Settings) without
-/// ever surfacing the full list in-app. Priya's v1.11 review flagged that
-/// power users who learn one shortcut can't discover the rest — they have
-/// to read the repo README.
+/// speed, `1`–`4` for options, `⌘H` for hints, `⌘,` for Settings, `⌘E` for
+/// examples, `⌘.` for "no lo sé" in typed modes) without ever surfacing the
+/// full list in-app. Priya's v1.11 review flagged that power users who
+/// learn one shortcut can't discover the rest — they have to read the repo
+/// README. v1.12.0 patch (Priya's blocker 1) restored the 3 shortcuts that
+/// shipped in the app but were missing from the initial v1.12 cheatsheet:
+/// `⌘,` (Settings), `⌘E` (examples), `⌘.` (typed-mode "no lo sé").
 ///
 /// Trigger: ⌘`/` from anywhere (RootView attaches the global shortcut to a
 /// hidden button that toggles a sheet). Escape closes (the sheet inherits
@@ -40,22 +43,37 @@ struct ShortcutsCheatsheetView: View {
         Entry(key: "⌘M", action: "Silenciar / activar audio"),
     ]
 
+    /// Information shortcuts — `⌘E` opens the per-verb examples panel from
+    /// the answer-feedback step (F011 v1.12.0 cheatsheet patch — Priya's
+    /// blocker 1: the shortcut shipped in F008 but never appeared in this
+    /// list).
+    static let informationEntries: [Entry] = [
+        Entry(key: "⌘E", action: "Ver ejemplos del verbo"),
+    ]
+
     /// Answer shortcuts — `1`–`4` map to options across every multi-choice
     /// mode; `0` is the self-report "no lo sé" anchor; `Enter` commits
     /// typed answers (F003 write modes); `⌘H` requests the hint Lucía
-    /// shipped in v1.10 for the writeFillGaps mode.
+    /// shipped in v1.10 for the writeFillGaps mode; `⌘.` is the
+    /// "no lo sé" affordance specific to typed-answer modes (the visible
+    /// "0" key collides with the text field, so `⌘.` is the shortcut
+    /// wired in `TypedAnswerInputView`).
     static let answerEntries: [Entry] = [
         Entry(key: "1–4",  action: "Elegir opción"),
         Entry(key: "0",    action: "No lo sé"),
         Entry(key: "Enter", action: "Enviar respuesta"),
         Entry(key: "⌘H",   action: "Pedir pista"),
+        Entry(key: "⌘.",   action: "No lo sé (en modo escritura)"),
     ]
 
     /// Navigation shortcuts — `Esc` closes the active sheet (cheatsheet,
-    /// Settings, Examples panel); `⌘/` toggles this view from anywhere.
+    /// Settings, Examples panel); `⌘/` toggles this view from anywhere;
+    /// `⌘,` opens Settings from Home (system-standard preferences
+    /// shortcut, wired in `HomeView`).
     static let navigationEntries: [Entry] = [
         Entry(key: "Esc", action: "Cerrar / salir"),
         Entry(key: "⌘/",  action: "Mostrar este menú"),
+        Entry(key: "⌘,",  action: "Abrir Ajustes"),
     ]
 
     /// Concatenated list used by `ShortcutsCheatsheetTests` to pin that no
@@ -63,7 +81,7 @@ struct ShortcutsCheatsheetView: View {
     /// computed property out of the body so the SwiftUI graph doesn't
     /// re-build it on every render.
     static var allEntries: [Entry] {
-        audioEntries + answerEntries + navigationEntries
+        audioEntries + informationEntries + answerEntries + navigationEntries
     }
 
     let onClose: () -> Void
@@ -76,6 +94,7 @@ struct ShortcutsCheatsheetView: View {
                 .accessibilityAddTraits(.isHeader)
 
             section(title: "Audio", entries: Self.audioEntries)
+            section(title: "Información", entries: Self.informationEntries)
             section(title: "Respuesta", entries: Self.answerEntries)
             section(title: "Navegación", entries: Self.navigationEntries)
 
