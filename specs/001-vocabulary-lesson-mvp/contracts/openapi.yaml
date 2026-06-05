@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GramartEnglish Backend API
-  version: 1.6.0
+  version: 1.7.0
   description: |
     Local HTTP API exposed by the embedded Node.js backend to the GramartEnglish
     macOS application. Binds only to 127.0.0.1 on an ephemeral port; never
@@ -659,3 +659,43 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContextualDefinitionResponse' }
+  /verbs/{base}/intro:
+    get:
+      summary: F006 — pre-conjugation "Conoce el verbo" micro-card payload
+      description: |
+        Returns the bilingual mini-context for a verb. Used by the client once
+        per (macInstall, verbBase) immediately before the first
+        `conjugate_pick_form` question for that verb. The Spanish example
+        keeps its `___` slot — the card pairs the prompt shape with a
+        fully-conjugated English translation. Server is stateless about the
+        seen-set; clients gate calls themselves via `gramart.verbIntro.seen`
+        in UserDefaults.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - in: path
+          name: base
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+            pattern: '^[a-z]+$'
+      responses:
+        '200':
+          description: Verb intro payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [base, es, exampleEs, exampleEn, audioBase]
+                properties:
+                  base: { type: string, example: go }
+                  es: { type: string, example: ir }
+                  exampleEs: { type: string, example: "Ayer ___ al cine con mi hermana." }
+                  exampleEn: { type: string, example: "Yesterday I went to the movies with my sister." }
+                  audioBase: { type: string, example: go.mp3 }
+        '404':
+          description: Unknown verb base
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }

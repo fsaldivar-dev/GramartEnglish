@@ -18,8 +18,13 @@ struct SpeakButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(label): \(text)")
-        .accessibilityHint("Reproduce la palabra en inglés")
+        // v1.7.0 polish D: drop the verb from the label. The word text is
+        // already rendered next to the button as its own a11y element, so
+        // saying "Escuchar: wake" here made VO read "wake" three times in
+        // a row (label, neighbor element, hint). The hint mentions the "S"
+        // shortcut so keyboard users know it without sighted scanning.
+        .accessibilityLabel("Reproducir palabra en inglés")
+        .accessibilityHint(shortcut == nil ? "Reproduce la palabra en inglés" : "Presiona S para escuchar")
 
         if let shortcut {
             button.keyboardShortcut(shortcut, modifiers: [])

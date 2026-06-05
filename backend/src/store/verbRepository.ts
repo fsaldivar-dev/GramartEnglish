@@ -39,6 +39,14 @@ export interface VerbRow {
    *  collapses (both → "ate"). Temporal markers (ayer, anoche, la semana
    *  pasada, el año pasado) anchor the answer to past simple. */
   exampleEs: string;
+  /** v1.7.0 patch (F006 Blocker 1): `exampleEs` with the `___` slot replaced
+   *  by the Spanish preterite conjugation. Used by the verb intro card —
+   *  showing the gap on a teaching surface confused low-vision learners.
+   *  The unfilled `exampleEs` stays the source of truth for the conjugation
+   *  drill (where the gap is the whole point). Hand-curated per verb in
+   *  verbs.json because algorithmic Spanish conjugation isn't reliable
+   *  enough for a polish layer. */
+  exampleEsFilled: string;
   /** v1.6.0 patch (Blocker 2): the English translation of `exampleEs` with
    *  the verb already conjugated — shown after the user answers as a
    *  reinforcement, never as a hint before they choose. */
@@ -57,6 +65,7 @@ const VerbFile = z.array(
     audio_base: z.string().min(1),
     audio_past: z.string().min(1),
     example_es: z.string().min(1),
+    example_es_filled: z.string().min(1),
     example_en: z.string().min(1),
   }),
 );
@@ -135,6 +144,7 @@ export function loadVerbCorpus(corpusDir: string, words: WordRepository): VerbRe
       audioBase: v.audio_base,
       audioPast: v.audio_past,
       exampleEs: v.example_es,
+      exampleEsFilled: v.example_es_filled,
       exampleEn: v.example_en,
     });
   }
