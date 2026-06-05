@@ -76,7 +76,12 @@ final class ShortcutsCheatsheetTests: XCTestCase {
         let spanishMarkers: [String] = [
             "á", "é", "í", "ó", "ú", "ñ",
             "Escuchar", "Elegir", "Silenciar", "Cerrar", "menú",
-            "Pedir", "Enviar", "lo sé"
+            "Pedir", "Enviar", "lo sé",
+            // v1.12.0 patch — new entries surface "Ver ejemplos del
+            // verbo" and "Abrir Ajustes"; both are pure Spanish even
+            // though they lack accents. Marker words pin the copy
+            // without forcing diacritics that aren't in the source.
+            "Ver ejemplos", "verbo", "Abrir", "Ajustes"
         ]
         for entry in ShortcutsCheatsheetView.allEntries {
             let hit = spanishMarkers.contains { entry.action.contains($0) }
@@ -100,6 +105,87 @@ final class ShortcutsCheatsheetTests: XCTestCase {
             XCTAssertFalse(expected.contains("  "), "double-space in \(expected)")
             XCTAssertTrue(expected.contains(", "),  "missing comma-pause in \(expected)")
         }
+    }
+
+    // MARK: - Sheet-over-sheet guard (Priya blocker 3, v1.12.0 patch)
+
+    /// SwiftUI on macOS doesn't stack `.sheet` from the same presenter.
+    /// Before the patch, pressing ⌘`/` while `SettingsView` or
+    /// `MyWordsView` was already presented toggled `showingCheatsheet`
+    /// without actually presenting the cheatsheet — the flag got stuck
+    /// `true` and the sheet popped uninvited after the outer sheet
+    /// dismissed. The guard is the `canShowCheatsheet` computed
+    /// property in `ReadyFlowView` plus a `.disabled(!canShowCheatsheet)`
+    /// on the hidden trigger button.
+    ///
+    /// We can't drive the SwiftUI graph here (no UI host bundle), so
+    /// we pin the contract by reading the source of `RootView.swift`
+    /// and asserting both the guard expression and the `.disabled`
+    /// wiring are present. Any future refactor that drops one of
+    /// these breaks the test loudly.
+    func testCheatsheetTriggerIsGuardedAgainstSheetOverlap() throws {
+        let url = Self.rootViewSourceURL()
+        let src = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(
+            src.contains("private var canShowCheatsheet: Bool"),
+            "ReadyFlowView lost the canShowCheatsheet guard — sheet-over-sheet bug returns"
+        )
+        XCTAssertTrue(
+            src.contains("!showSettings && !showMyWords"),
+            "canShowCheatsheet must reject the trigger while Settings or MyWords is presented"
+        )
+        XCTAssertTrue(
+            src.contains(".disabled(!canShowCheatsheet)"),
+            "Hidden ⌘/ trigger button must be .disabled(!canShowCheatsheet)"
+        )
+    }
+
+    /// Pins the Help-menu wiring added in the v1.12.0 patch (Priya
+    /// blocker 2). We assert against the source rather than the
+    /// running scene because `Commands` aren't testable without a
+    /// hosted app instance. If the menu item disappears, this test
+    /// fails — restoring the discovery affordance the cheatsheet
+    /// depends on.
+    func testHelpMenuExposesCheatsheet() throws {
+        let url = Self.gramartEnglishAppSourceURL()
+        let src = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(
+            src.contains("CommandGroup(replacing: .help)"),
+            "GramartEnglishApp must replace .help menu with the cheatsheet command"
+        )
+        XCTAssertTrue(
+            src.contains("\"Atajos de teclado\""),
+            "Help-menu item label must read 'Atajos de teclado'"
+        )
+        XCTAssertTrue(
+            src.contains(".showShortcutsCheatsheet"),
+            "Help-menu item must post the .showShortcutsCheatsheet notification"
+        )
+    }
+
+    /// Locates `RootView.swift` relative to this test file, walking
+    /// up from `Tests/Unit/` to `Sources/App/`. Test bundles don't
+    /// have a stable working directory, so resolving via `#file`
+    /// keeps the path correct across `swift test` and Xcode.
+    private static func rootViewSourceURL() -> URL {
+        let here = URL(fileURLWithPath: #file)
+        // here: …/Tests/Unit/ShortcutsCheatsheetTests.swift
+        return here
+            .deletingLastPathComponent()        // Unit
+            .deletingLastPathComponent()        // Tests
+            .deletingLastPathComponent()        // GramartEnglish
+            .appendingPathComponent("Sources/App/RootView.swift")
+    }
+
+    private static func gramartEnglishAppSourceURL() -> URL {
+        let here = URL(fileURLWithPath: #file)
+        return here
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/App/GramartEnglishApp.swift")
     }
 
     // MARK: - Dynamic Type smoke
