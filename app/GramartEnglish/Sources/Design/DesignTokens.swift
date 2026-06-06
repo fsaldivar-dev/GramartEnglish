@@ -73,17 +73,23 @@ public enum Tint {
 /// platform `nil` color (System red, in practice).
 public enum Semantic {
 
-    /// Returns the asset-catalog color when the bundle resolves it;
-    /// otherwise the fallback closure (which can read `ColorScheme`).
+    /// Returns a dynamic NSColor-backed Color that auto-swaps on appearance.
+    ///
+    /// v1.12.2 hotfix: the v1.10.0 implementation probed `Bundle.module` to
+    /// detect whether the asset catalog had compiled (Xcode build) or not
+    /// (SPM build). The probe assumed `Bundle.module` returns nil-or-Bundle.
+    /// In reality, `Bundle.module` is a synthesized accessor whose lazy
+    /// initialiser calls `_assertionFailure` if the resource bundle is
+    /// missing from the .app (which happens when `build-app.sh` packages
+    /// an SPM-built binary). That crashes the runtime — not catchable.
+    ///
+    /// Fix: skip the catalog probe entirely. Always use the dynamic
+    /// NSColor fallback. The `.xcassets` files stay in the source tree
+    /// for a future Xcode-driven build, but Swift code paths never
+    /// reference `Bundle.module`. Both paths use the same hex constants,
+    /// so the runtime appearance is identical.
     private static func token(_ name: String, lightHex: UInt32, darkHex: UInt32) -> Color {
-        // Probe the bundle once at first use. NSColor exposes whether the
-        // lookup succeeded; if it did, we trust the catalog (Xcode build).
-        if NSColor(named: NSColor.Name(name), bundle: .module) != nil {
-            return Color(name, bundle: .module)
-        }
-        // SPM-build fallback: synthesise a Color that auto-swaps on
-        // ColorScheme. We use `Color(nsColor:)` with a dynamic NSColor
-        // so SwiftUI re-evaluates on appearance changes.
+        _ = name // retained for source compatibility with v1.10.0 call sites
         let dynamic = NSColor(name: nil, dynamicProvider: { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
             return Self.color(fromHex: isDark ? darkHex : lightHex)
