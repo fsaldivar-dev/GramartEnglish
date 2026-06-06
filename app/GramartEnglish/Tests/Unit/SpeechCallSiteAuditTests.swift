@@ -75,7 +75,7 @@ final class SpeechCallSiteAuditTests: XCTestCase {
         .init(relativePath: "Features/Lesson/LessonQuestionView.swift",
               line: 48, userInitiated: false),
         .init(relativePath: "Features/Lesson/AnswerFeedbackView.swift",
-              line: 63, userInitiated: false),
+              line: 67, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",
               line: 115, userInitiated: false),
         .init(relativePath: "Features/Onboarding/PlacementQuestionView.swift",

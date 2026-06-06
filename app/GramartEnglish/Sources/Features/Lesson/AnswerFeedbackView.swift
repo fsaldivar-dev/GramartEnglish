@@ -57,7 +57,11 @@ struct AnswerFeedbackView: View {
                     // FR-008 + FR-012 — re-speak the canonical on reveal for any
                     // listening mode, with a small debounce so the reveal animation
                     // settles before audio starts.
-                    if mode.isListening {
+                    // v1.13: also auto-speak on `.correct` outcome regardless of mode —
+                    // positive audio reinforcement on a right answer (user-requested).
+                    // Mute is respected automatically by `speakEnglish` (no
+                    // `isUserInitiated: true` here).
+                    if mode.isListening || outcome.kind == .correct {
                         Task { @MainActor in
                             try? await Task.sleep(nanoseconds: 250_000_000)
                             SpeechService.shared.speakEnglish(question.word)
